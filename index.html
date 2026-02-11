@@ -12,7 +12,8 @@
     
     <style>
         [v-cloak] { display: none; }
-        .cursor-pen { cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path><path d="M2 2l7.586 7.586"></path><circle cx="11" cy="11" r="2"></circle></svg>') 0 24, crosshair; }
+        /* 修正游標樣式，使其熱點 (hotspot) 更精確位於筆尖 */
+        .cursor-pen { cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.4));"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path><path d="M2 2l7.586 7.586"></path></svg>') 0 24, crosshair; }
         .watermark { position: fixed; bottom: 10px; right: 10px; font-size: 0.7rem; color: rgba(0,0,0,0.2); pointer-events: none; z-index: 9999; }
         .folder-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
         /* 動畫效果 */
@@ -20,12 +21,15 @@
         .fade-enter-from, .fade-leave-to { opacity: 0; }
         .animate-fade-in { animation: fadeIn 0.5s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        /* 隱藏滾動條但保持功能 */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans antialiased">
 
 <div id="app" v-cloak>
-    <div class="watermark">Qu Album v4.4 Secure</div>
+    <div class="watermark">Qu Album v4.5 Canvas Fix</div>
 
     <div v-if="loading" class="fixed inset-0 flex flex-col items-center justify-center bg-white z-50">
         <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500 mb-4"></div>
@@ -169,17 +173,24 @@
         <div class="flex justify-between items-center p-4 text-white bg-gradient-to-b from-black/80 to-transparent z-50">
             <div class="flex items-center space-x-4">
                 <span class="font-bold font-mono">{{ currentPhotoIndex + 1 }} / {{ currentFiles.length }}</span>
-                <button @click="toggleDrawing" :class="isDrawingMode ? 'bg-blue-600 border-transparent' : 'bg-gray-800 border-gray-600'" class="px-3 py-1.5 rounded-full text-sm border flex items-center transition"><i class="fa-solid fa-pen-nib mr-2"></i></button>
-                <div v-if="isDrawingMode" class="flex space-x-2 animate-fade-in">
-                    <button @click="penColor = '#ef4444'" class="w-6 h-6 rounded-full bg-red-500 border-2 transition" :class="penColor==='#ef4444'?'border-white scale-110':'border-transparent'"></button>
-                    <button @click="penColor = '#eab308'" class="w-6 h-6 rounded-full bg-yellow-500 border-2 transition" :class="penColor==='#eab308'?'border-white scale-110':'border-transparent'"></button>
-                    <button @click="clearCanvas" class="text-xs bg-gray-800 px-2 py-1 rounded ml-2 hover:bg-gray-700">清除</button>
+                <button @click="toggleDrawing" :class="isDrawingMode ? 'bg-blue-600 border-transparent' : 'bg-gray-800 border-gray-600'" class="px-3 py-1.5 rounded-full text-sm border flex items-center transition transition-all"><i class="fa-solid fa-pen-nib mr-2"></i> 標記</button>
+                
+                <div v-if="isDrawingMode" class="flex space-x-2 animate-fade-in items-center pl-2 border-l border-gray-700">
+                    <template v-for="color in colorPalette" :key="color.hex">
+                        <button @click="penColor = color.hex" 
+                                class="w-6 h-6 rounded-full border-2 transition box-content"
+                                :class="[color.bg, penColor === color.hex ? 'border-white scale-110 shadow-sm' : 'border-transparent opacity-80 hover:opacity-100']">
+                        </button>
+                    </template>
+                    <button @click="clearCanvas" class="text-xs bg-gray-800 px-2 py-1 rounded ml-2 hover:bg-gray-700 text-gray-300"><i class="fa-solid fa-trash-can mr-1"></i> 清除</button>
                 </div>
             </div>
             <button @click="closeLightbox" class="w-10 h-10 rounded-full bg-gray-800 hover:bg-red-500 flex items-center justify-center transition"><i class="fa-solid fa-xmark text-xl"></i></button>
         </div>
-        <div class="flex-1 relative flex items-center justify-center overflow-hidden bg-black select-none">
-            <canvas ref="drawCanvas" v-show="isDrawingMode" class="absolute inset-0 z-20 cursor-pen touch-none"
+        
+        <div class="flex-1 relative flex items-center justify-center overflow-hidden bg-black select-none w-full h-full">
+            <canvas ref="drawCanvas" v-show="isDrawingMode" class="absolute inset-0 z-20 touch-none w-full h-full object-contain"
+                :style="{ cursor: isDrawingMode ? 'url(' + penCursorUrl + ') 0 24, crosshair' : 'default' }"
                 @mousedown="startDraw" @mousemove="drawing" @mouseup="stopDraw" @mouseout="stopDraw" @touchstart="startDraw" @touchmove="drawing" @touchend="stopDraw"></canvas>
             
             <img v-if="currentPhoto.mime === 'i'" :src="currentPhoto.url" class="max-h-full max-w-full object-contain z-10 pointer-events-none">
@@ -204,28 +215,43 @@
             // Auth State
             const auth = ref({ required: false, type: '', target: null, input: '', error: false, verifying: false });
 
+            // Navigation State
             const viewMode = ref('bookshelf');
             const breadcrumbs = ref([]);
             const currentNode = ref(null);
 
+            // Lightbox State
             const showLightbox = ref(false);
             const currentPhotoIndex = ref(0);
+            
+            // Drawing State (新版)
             const isDrawingMode = ref(false);
-            const penColor = ref('#ef4444');
+            const penColor = ref('#ef4444'); // 預設紅色
+            // 擴充調色盤定義
+            const colorPalette = [
+                { hex: '#ef4444', name: 'Red', bg: 'bg-red-500' },
+                { hex: '#eab308', name: 'Yellow', bg: 'bg-yellow-500' },
+                { hex: '#22c55e', name: 'Green', bg: 'bg-green-500' },
+                { hex: '#3b82f6', name: 'Blue', bg: 'bg-blue-500' },
+                { hex: '#ffffff', name: 'White', bg: 'bg-white' },
+            ];
+            
             const drawCanvas = ref(null);
             const ctx = ref(null);
             const isPainting = ref(false);
+
+            // 筆刷游標圖示 (SVG Data URI, 增加陰影提升對比度)
+            const penCursorUrl = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.5));"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path><path d="M2 2l7.586 7.586"></path></svg>';
 
             const currentFolders = computed(() => currentNode.value?.children?.filter(c => c.type === 'folder') || []);
             const currentFiles = computed(() => currentNode.value?.children?.filter(c => c.type === 'file') || []);
             const currentPhoto = computed(() => currentFiles.value[currentPhotoIndex.value] || {});
 
-            // Helper: SHA-256 Hashing (Browser Native)
+            // SHA-256 Hashing
             async function sha256(message) {
                 const msgBuffer = new TextEncoder().encode(message);
                 const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-                const hashArray = Array.from(new Uint8Array(hashBuffer));
-                return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+                return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
             }
 
             const getProxyUrl = (u) => `/api/proxy?url=${encodeURIComponent(u)}`;
@@ -241,13 +267,10 @@
                 nextTick(() => { document.querySelector('input[type="password"]')?.focus(); });
             };
 
-            // 🔥 重點：加密驗證邏輯 (Async)
             const verifyPassword = async () => {
                 auth.value.verifying = true;
                 const input = String(auth.value.input).trim();
                 let hashedInput = '';
-                
-                // 將輸入轉為雜湊
                 if(input) hashedInput = await sha256(input);
 
                 let correctHash = '';
@@ -257,7 +280,6 @@
                     correctHash = auth.value.target.password || '';
                 }
 
-                // 比對雜湊值
                 if (hashedInput === correctHash) {
                     const target = auth.value.target;
                     auth.value.required = false; 
@@ -279,34 +301,21 @@
                     if (!res.ok) throw new Error('讀取失敗');
                     const data = await res.json();
                     if (data.error) throw new Error(data.error);
-                    
                     sysInfo.value = data.sys;
                     albums.value = data.albums;
-
-                    // 全站密碼 (Hash Check)
-                    if (sysInfo.value.password) {
-                        triggerAuth('global');
-                    }
-                } catch (err) { 
-                    error.value = err.message; 
-                } finally { 
-                    loading.value = false; 
-                }
+                    if (sysInfo.value.password) triggerAuth('global');
+                } catch (err) { error.value = err.message; } finally { loading.value = false; }
             };
 
             const enterFolder = (folder) => {
-                if (folder.pwd && folder.password) {
-                    triggerAuth('folder', folder);
-                } else {
-                    actuallyEnterFolder(folder);
-                }
+                if (folder.pwd && folder.password) triggerAuth('folder', folder);
+                else actuallyEnterFolder(folder);
             };
 
             onMounted(async () => {
                 const id = new URLSearchParams(window.location.search).get('id');
                 if (!id) { loading.value = false; error.value = "HOME"; return; }
                 await fetchData(id);
-                
                 window.addEventListener('keydown', (e) => {
                     if (showLightbox.value) {
                         if (e.key === 'ArrowRight') nextPhoto();
@@ -314,24 +323,70 @@
                         if (e.key === 'Escape') closeLightbox();
                     }
                 });
+                // 監聽視窗大小改變，重繪 Canvas
+                window.addEventListener('resize', () => {
+                    if (isDrawingMode.value) initCanvas();
+                });
             });
 
+            // Actions
             const openById = () => { if(inputDeploymentId.value) window.location.href = `?id=${inputDeploymentId.value.trim()}`; };
             const goHomeRoot = () => { window.location.href = window.location.pathname; };
             const copyShareLink = () => { navigator.clipboard.writeText(window.location.href).then(() => alert('已複製連結')); };
             const goHome = () => { viewMode.value = 'bookshelf'; breadcrumbs.value = []; currentNode.value = null; };
             const navigateBreadcrumb = (idx) => { const t = breadcrumbs.value[idx]; currentNode.value = t.node; breadcrumbs.value = breadcrumbs.value.slice(0, idx + 1); };
+            
             const openLightbox = (idx) => { currentPhotoIndex.value = idx; showLightbox.value = true; isDrawingMode.value = false; };
             const closeLightbox = () => { showLightbox.value = false; clearCanvas(); };
             const nextPhoto = () => { currentPhotoIndex.value = (currentPhotoIndex.value + 1) % currentFiles.value.length; clearCanvas(); };
             const prevPhoto = () => { currentPhotoIndex.value = (currentPhotoIndex.value - 1 + currentFiles.value.length) % currentFiles.value.length; clearCanvas(); };
-            const toggleDrawing = async () => { isDrawingMode.value = !isDrawingMode.value; if(isDrawingMode.value) { await nextTick(); initCanvas(); } };
-            const initCanvas = () => { const c = drawCanvas.value; if(!c) return; c.width = window.innerWidth; c.height = window.innerHeight; ctx.value = c.getContext('2d'); ctx.value.lineCap='round'; ctx.value.lineWidth=5; };
-            const getPos = (e) => (e.touches && e.touches[0]) ? {x:e.touches[0].clientX, y:e.touches[0].clientY} : {x:e.clientX, y:e.clientY};
+            
+            // --- Drawing Logic (Fixed Offset) ---
+            const toggleDrawing = async () => { 
+                isDrawingMode.value = !isDrawingMode.value; 
+                if(isDrawingMode.value) { await nextTick(); initCanvas(); } 
+            };
+            
+            // 🔥 修正重點 1: 初始化 Canvas 大小
+            const initCanvas = () => { 
+                const c = drawCanvas.value; 
+                if(!c) return; 
+                // 取得 Canvas 在螢幕上的實際顯示大小 (Bounding Client Rect)
+                const rect = c.getBoundingClientRect();
+                // 將內部解析度設定為與顯示大小完全一致
+                c.width = rect.width; 
+                c.height = rect.height; 
+                
+                ctx.value = c.getContext('2d'); 
+                ctx.value.lineCap='round'; 
+                ctx.value.lineJoin='round'; // 讓轉折處更圓滑
+                ctx.value.lineWidth=5; 
+            };
+
+            // 🔥 修正重點 2: 取得相對於 Canvas 的精確座標
+            const getPos = (e) => {
+                 const c = drawCanvas.value;
+                 if(!c) return {x:0, y:0};
+
+                 // 1. 取得原始視窗座標
+                 const clientX = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
+                 const clientY = (e.touches && e.touches[0]) ? e.touches[0].clientY : e.clientY;
+
+                 // 2. 取得 Canvas 相對於視窗的位置
+                 const rect = c.getBoundingClientRect();
+
+                 // 3. 計算相對座標 (減去偏移量)
+                 return {
+                     x: clientX - rect.left,
+                     y: clientY - rect.top
+                 };
+            };
+
             const startDraw = (e) => { if(!isDrawingMode.value) return; isPainting.value = true; const {x,y} = getPos(e); ctx.value.strokeStyle = penColor.value; ctx.value.beginPath(); ctx.value.moveTo(x,y); };
             const drawing = (e) => { if(!isPainting.value) return; e.preventDefault(); const {x,y} = getPos(e); ctx.value.lineTo(x,y); ctx.value.stroke(); };
             const stopDraw = () => { isPainting.value = false; if(ctx.value) ctx.value.closePath(); };
             const clearCanvas = () => { if(ctx.value) ctx.value.clearRect(0,0,drawCanvas.value.width, drawCanvas.value.height); };
+            
             const downloadCurrentFolder = async () => {
                 const zip = new JSZip();
                 const files = currentFiles.value;
@@ -349,8 +404,8 @@
                 loading, error, inputDeploymentId, sysInfo, albums, viewMode, breadcrumbs, currentFolders, currentFiles, currentPhoto,
                 goHome, enterFolder, navigateBreadcrumb, openById, goHomeRoot, copyShareLink,
                 showLightbox, currentPhotoIndex, openLightbox, closeLightbox, nextPhoto, prevPhoto,
-                isDrawingMode, penColor, drawCanvas, toggleDrawing, startDraw, drawing, stopDraw, clearCanvas,
-                getProxyUrl, downloadCurrentFolder, auth, verifyPassword, cancelAuth
+                isDrawingMode, penColor, colorPalette, drawCanvas, toggleDrawing, startDraw, drawing, stopDraw, clearCanvas,
+                getProxyUrl, downloadCurrentFolder, auth, verifyPassword, cancelAuth, penCursorUrl
             };
         }
     }).mount('#app');
