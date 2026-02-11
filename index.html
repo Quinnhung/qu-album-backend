@@ -21,7 +21,7 @@
 <body class="bg-gray-50 text-gray-800 font-sans antialiased">
 
 <div id="app" v-cloak>
-    <div class="watermark">Qu Album v3.1 Security</div>
+    <div class="watermark">Qu Album v3.1 Fix</div>
 
     <div v-if="loading" class="fixed inset-0 flex flex-col items-center justify-center bg-white z-50">
         <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500 mb-4"></div>
@@ -44,33 +44,6 @@
             <button @click="goHomeRoot" class="mt-6 text-blue-600 hover:underline">回到首頁</button>
         </div>
     </div>
-
-    <transition name="fade">
-        <div v-if="auth.required" class="fixed inset-0 z-[60] bg-gray-900/90 backdrop-blur-sm flex items-center justify-center p-4">
-            <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full text-center transform transition-all scale-100">
-                <div class="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i class="fa-solid fa-lock text-2xl"></i>
-                </div>
-                <h3 class="text-xl font-bold text-gray-800 mb-2">
-                    {{ auth.type === 'global' ? '全站鎖定' : '相簿上鎖' }}
-                </h3>
-                <p class="text-gray-500 text-sm mb-6">
-                    {{ auth.type === 'global' ? '請輸入全站存取密碼' : '此資料夾受密碼保護' }}
-                </p>
-                <form @submit.prevent="verifyPassword">
-                    <input type="password" v-model="auth.input" ref="pwdInput" placeholder="輸入密碼..." 
-                           class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none text-center mb-4 tracking-widest">
-                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition shadow-md">
-                        解鎖
-                    </button>
-                    <p v-if="auth.error" class="text-red-500 text-xs mt-3 animate-pulse">
-                        <i class="fa-solid fa-circle-exclamation mr-1"></i> 密碼錯誤
-                    </p>
-                </form>
-                <button v-if="auth.type === 'folder'" @click="cancelAuth" class="mt-4 text-gray-400 text-sm hover:text-gray-600">取消</button>
-            </div>
-        </div>
-    </transition>
 
     <div v-else class="min-h-screen flex flex-col">
         <nav class="bg-white shadow sticky top-0 z-30">
@@ -154,6 +127,33 @@
         </main>
     </div>
 
+    <transition name="fade">
+        <div v-if="auth.required" class="fixed inset-0 z-[60] bg-gray-900/90 backdrop-blur-sm flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full text-center transform transition-all scale-100">
+                <div class="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fa-solid fa-lock text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-bold text-gray-800 mb-2">
+                    {{ auth.type === 'global' ? '全站鎖定' : '相簿上鎖' }}
+                </h3>
+                <p class="text-gray-500 text-sm mb-6">
+                    {{ auth.type === 'global' ? '請輸入全站存取密碼' : '此資料夾受密碼保護' }}
+                </p>
+                <form @submit.prevent="verifyPassword">
+                    <input type="password" v-model="auth.input" ref="pwdInput" placeholder="輸入密碼..." 
+                           class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none text-center mb-4 tracking-widest">
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition shadow-md">
+                        解鎖
+                    </button>
+                    <p v-if="auth.error" class="text-red-500 text-xs mt-3 animate-pulse">
+                        <i class="fa-solid fa-circle-exclamation mr-1"></i> 密碼錯誤
+                    </p>
+                </form>
+                <button v-if="auth.type === 'folder'" @click="cancelAuth" class="mt-4 text-gray-400 text-sm hover:text-gray-600">取消</button>
+            </div>
+        </div>
+    </transition>
+
     <div v-if="showLightbox" class="fixed inset-0 z-[100] bg-black/95 flex flex-col" @keydown.esc="closeLightbox" tabindex="0">
         <div class="flex justify-between items-center p-4 text-white bg-gradient-to-b from-black/80 to-transparent z-50">
             <div class="flex items-center space-x-4">
@@ -188,7 +188,7 @@
             const sysInfo = ref({});
             const albums = ref([]);
             
-            // Auth State (密碼驗證狀態)
+            // Auth State
             const auth = ref({ required: false, type: '', target: null, input: '', error: false });
 
             // Nav State
@@ -209,6 +209,67 @@
             const currentFiles = computed(() => currentNode.value?.children?.filter(c => c.type === 'file') || []);
             const currentPhoto = computed(() => currentFiles.value[currentPhotoIndex.value] || {});
 
+            // Define helper functions FIRST to avoid hoisting issues
+            const actuallyEnterFolder = (folder) => {
+                currentNode.value = folder;
+                breadcrumbs.value.push({ id: folder.id, name: folder.name, node: folder });
+                viewMode.value = 'explorer';
+            };
+
+            const triggerAuth = (type, target = null) => {
+                auth.value = { required: true, type, target, input: '', error: false };
+                nextTick(() => { 
+                    const el = document.querySelector('input[type="password"]');
+                    if(el) el.focus(); 
+                });
+            };
+
+            const verifyPassword = () => {
+                const input = auth.value.input.trim();
+                let correctPassword = '';
+                
+                if (auth.value.type === 'global') correctPassword = sysInfo.value.password;
+                else if (auth.value.type === 'folder') correctPassword = auth.value.target.password;
+
+                if (input === correctPassword) {
+                    const target = auth.value.target;
+                    auth.value.required = false; 
+                    if (auth.value.type === 'folder' && target) {
+                        actuallyEnterFolder(target);
+                    }
+                } else {
+                    auth.value.error = true;
+                    auth.value.input = '';
+                }
+            };
+
+            const cancelAuth = () => { auth.value.required = false; };
+
+            const fetchData = async (id) => {
+                try {
+                    const res = await fetch(`/api/albums?id=${id}`);
+                    if (!res.ok) throw new Error('讀取失敗');
+                    const data = await res.json();
+                    if (data.error) throw new Error(data.error);
+                    
+                    sysInfo.value = data.sys;
+                    albums.value = data.albums;
+
+                    if (sysInfo.value.password) {
+                        triggerAuth('global');
+                    }
+                } catch (err) { error.value = err.message; } finally { loading.value = false; }
+            };
+
+            // Public functions
+            const enterFolder = (folder) => {
+                if (folder.pwd && folder.password) {
+                    triggerAuth('folder', folder);
+                } else {
+                    actuallyEnterFolder(folder);
+                }
+            };
+
             onMounted(async () => {
                 const id = new URLSearchParams(window.location.search).get('id');
                 if (!id) { loading.value = false; error.value = "HOME"; return; }
@@ -223,72 +284,6 @@
                 });
             });
 
-            // Password Verification Logic
-            const triggerAuth = (type, target = null) => {
-                auth.value = { required: true, type, target, input: '', error: false };
-                nextTick(() => { document.querySelector('input[type="password"]')?.focus(); });
-            };
-
-            const verifyPassword = () => {
-                const input = auth.value.input.trim();
-                let correctPassword = '';
-                
-                if (auth.value.type === 'global') correctPassword = sysInfo.value.password;
-                else if (auth.value.type === 'folder') correctPassword = auth.value.target.password;
-
-                // 寬鬆比對 (字串比對)
-                if (input === correctPassword) {
-                    const target = auth.value.target;
-                    auth.value.required = false; // 解鎖成功
-                    
-                    if (auth.value.type === 'folder' && target) {
-                        // 如果是相簿，解鎖後直接進入
-                        actuallyEnterFolder(target);
-                    }
-                } else {
-                    auth.value.error = true;
-                    auth.value.input = '';
-                }
-            };
-
-            const cancelAuth = () => { auth.value.required = false; };
-
-            // Core Logic
-            const fetchData = async (id) => {
-                try {
-                    const res = await fetch(`/api/albums?id=${id}`);
-                    if (!res.ok) throw new Error('讀取失敗');
-                    const data = await res.json();
-                    if (data.error) throw new Error(data.error);
-                    
-                    sysInfo.value = data.sys;
-                    albums.value = data.albums;
-
-                    // 1. 全站密碼檢查
-                    if (sysInfo.value.password) {
-                        triggerAuth('global');
-                    }
-
-                } catch (err) { error.value = err.message; } finally { loading.value = false; }
-            };
-
-            // Folder Entry Logic (With Interception)
-            const enterFolder = (folder) => {
-                // 2. 相簿/資料夾密碼檢查
-                if (folder.pwd && folder.password) {
-                    triggerAuth('folder', folder);
-                } else {
-                    actuallyEnterFolder(folder);
-                }
-            };
-
-            const actuallyEnterFolder = (folder) => {
-                currentNode.value = folder;
-                breadcrumbs.value.push({ id: folder.id, name: folder.name, node: folder });
-                viewMode.value = 'explorer';
-            };
-
-            // ... (Rest of functions remain same) ...
             const openById = () => { if(inputDeploymentId.value) window.location.href = `?id=${inputDeploymentId.value.trim()}`; };
             const goHomeRoot = () => { window.location.href = window.location.pathname; };
             const getProxyUrl = (u) => `/api/proxy?url=${encodeURIComponent(u)}`;
@@ -324,9 +319,7 @@
                 goHome, enterFolder, navigateBreadcrumb, openById, goHomeRoot, copyShareLink,
                 showLightbox, currentPhotoIndex, openLightbox, closeLightbox, nextPhoto, prevPhoto,
                 isDrawingMode, penColor, drawCanvas, toggleDrawing, startDraw, drawing, stopDraw, clearCanvas,
-                getProxyUrl, downloadCurrentFolder,
-                // New Auth
-                auth, verifyPassword, cancelAuth
+                getProxyUrl, downloadCurrentFolder, auth, verifyPassword, cancelAuth
             };
         }
     }).mount('#app');
