@@ -13,43 +13,32 @@
         [v-cloak] { display: none; }
         .cursor-pen { cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path><path d="M2 2l7.586 7.586"></path><circle cx="11" cy="11" r="2"></circle></svg>') 0 24, crosshair; }
         .watermark { position: fixed; bottom: 10px; right: 10px; font-size: 0.7rem; color: rgba(0,0,0,0.2); pointer-events: none; z-index: 9999; }
+        .folder-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
     </style>
 </head>
-<body class="bg-gray-100 text-gray-800 font-sans antialiased">
+<body class="bg-gray-50 text-gray-800 font-sans antialiased">
 
 <div id="app" v-cloak>
-    <div class="watermark">Qu Album v2.4 Enterprise</div>
+    <div class="watermark">Qu Album v3.0 Tree</div>
 
     <div v-if="loading" class="fixed inset-0 flex flex-col items-center justify-center bg-white z-50">
         <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500 mb-4"></div>
-        <p class="text-gray-500 animate-pulse">正在連線至雲端...</p>
+        <p class="text-gray-500 animate-pulse">讀取檔案結構中...</p>
     </div>
 
     <div v-else-if="error" class="fixed inset-0 flex flex-col items-center justify-center bg-gray-50 p-4 text-center z-40">
-        
         <div v-if="error === 'HOME'" class="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full border border-gray-200">
-            <div class="mb-6 flex justify-center">
-                <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center">
-                    <i class="fa-solid fa-camera-retro text-4xl text-blue-600"></i>
-                </div>
-            </div>
+            <div class="mb-6 flex justify-center"><div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center"><i class="fa-solid fa-camera-retro text-4xl text-blue-600"></i></div></div>
             <h2 class="text-2xl font-bold text-gray-800 mb-2">Qu相簿入口</h2>
-            <p class="text-gray-500 mb-6 text-sm">請輸入您的相簿櫃 ID (UUID) 以繼續</p>
-            
-            <div class="flex flex-col space-y-3">
-                <input type="text" v-model="inputDeploymentId" placeholder="例如: a1b2c3d4-..." 
-                       class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none transition text-center font-mono text-sm">
-                <button @click="openById" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-bold transition shadow-md hover:shadow-lg">
-                    進入相簿櫃
-                </button>
+            <div class="flex flex-col space-y-3 mt-6">
+                <input type="text" v-model="inputDeploymentId" placeholder="輸入 UUID" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none text-center font-mono">
+                <button @click="openById" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-bold transition">進入</button>
             </div>
-            <p class="mt-6 text-xs text-gray-400">如果是第一次使用，請向管理員索取連結。</p>
         </div>
-
         <div v-else>
             <i class="fa-solid fa-triangle-exclamation text-6xl text-red-400 mb-4"></i>
-            <h2 class="text-2xl font-bold text-gray-700 mb-2">無法讀取相簿</h2>
-            <p class="text-gray-500 max-w-md bg-white p-4 rounded shadow-sm border border-red-100">{{ error }}</p>
+            <h2 class="text-2xl font-bold text-gray-700 mb-2">錯誤</h2>
+            <p class="text-gray-500 max-w-md bg-white p-4 rounded border border-red-100">{{ error }}</p>
             <button @click="goHomeRoot" class="mt-6 text-blue-600 hover:underline">回到首頁</button>
         </div>
     </div>
@@ -63,63 +52,96 @@
                         <span class="font-bold text-xl tracking-tight">{{ sysInfo.title || 'Qu Album' }}</span>
                     </div>
                     <div class="flex items-center space-x-4">
-                         <span class="text-xs text-gray-400 hidden sm:inline">Updated: {{ formatDate(sysInfo.updatedAt) }}</span>
-                         <button @click="copyShareLink" class="text-gray-500 hover:text-blue-600" title="複製分享連結">
-                            <i class="fa-solid fa-share-nodes"></i>
-                         </button>
+                        <button @click="copyShareLink" class="text-gray-500 hover:text-blue-600"><i class="fa-solid fa-share-nodes"></i></button>
                     </div>
                 </div>
             </div>
         </nav>
 
-        <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
-            <div v-if="viewMode === 'bookshelf'" class="animate-fade-in">
-                <h2 class="text-2xl font-bold mb-6 border-l-4 border-blue-500 pl-3">相簿列表</h2>
-                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    <div v-for="album in albums" :key="album.id" @click="openAlbum(album)"
-                         class="group bg-white rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden border border-gray-100 transform hover:-translate-y-1">
-                        <div class="aspect-w-4 aspect-h-3 bg-gray-200 relative overflow-hidden">
-                            <img :src="album.cover || 'https://via.placeholder.com/400x300?text=No+Image'" class="object-cover w-full h-full group-hover:scale-110 transition-transform duration-700">
-                            <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all"></div>
-                            <div v-if="album.pwd" class="absolute top-2 right-2 bg-black/60 text-white px-2 py-1 rounded-full text-xs"><i class="fa-solid fa-lock"></i></div>
-                        </div>
-                        <div class="p-4">
-                            <h3 class="font-bold text-lg text-gray-800 truncate group-hover:text-blue-600 transition">{{ album.name }}</h3>
-                            <div class="flex justify-between items-center mt-2">
-                                <span class="text-sm text-gray-500">{{ album.count }} 張</span>
-                                <i class="fa-solid fa-arrow-right text-gray-300 group-hover:text-blue-500 transition"></i>
+        <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full">
+            
+            <div v-if="breadcrumbs.length > 0" class="flex items-center space-x-2 text-sm mb-6 overflow-x-auto whitespace-nowrap pb-2">
+                <button @click="goHome" class="text-gray-500 hover:text-blue-600 flex items-center px-2 py-1 rounded hover:bg-gray-100">
+                    <i class="fa-solid fa-house"></i>
+                </button>
+                <template v-for="(crumb, index) in breadcrumbs" :key="crumb.id">
+                    <span class="text-gray-300">/</span>
+                    <button @click="navigateBreadcrumb(index)" 
+                            :class="index === breadcrumbs.length - 1 ? 'font-bold text-gray-800' : 'text-gray-500 hover:text-blue-600'"
+                            class="px-2 py-1 rounded hover:bg-gray-100 transition">
+                        {{ crumb.name }}
+                    </button>
+                </template>
+            </div>
+
+            <div class="animate-fade-in">
+                
+                <div v-if="viewMode === 'bookshelf'">
+                    <h2 class="text-2xl font-bold mb-4 border-l-4 border-blue-500 pl-3">相簿列表</h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                        <div v-for="album in albums" :key="album.id" @click="enterFolder(album)"
+                             class="group bg-white rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden border border-gray-100 transform hover:-translate-y-1">
+                            <div class="aspect-w-4 aspect-h-3 bg-gray-200 relative overflow-hidden">
+                                <img :src="album.cover || 'https://via.placeholder.com/400x300?text=No+Cover'" class="object-cover w-full h-full group-hover:scale-110 transition-transform duration-700">
+                                <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all"></div>
+                                <div v-if="album.pwd" class="absolute top-2 right-2 bg-black/60 text-white px-2 py-1 rounded-full text-xs"><i class="fa-solid fa-lock"></i></div>
+                            </div>
+                            <div class="p-4">
+                                <h3 class="font-bold text-lg text-gray-800 truncate group-hover:text-blue-600">{{ album.name }}</h3>
+                                <div class="flex justify-between items-center mt-2 text-sm text-gray-500">
+                                    <span><i class="fa-regular fa-folder-open mr-1"></i> 進入相簿</span>
+                                    <i class="fa-solid fa-arrow-right"></i>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <div v-else-if="viewMode === 'gallery'" class="animate-fade-in">
-                <div class="flex items-center justify-between mb-6">
-                    <button @click="goHome" class="text-gray-500 hover:text-blue-600 transition flex items-center"><i class="fa-solid fa-arrow-left mr-2"></i> 返回列表</button>
-                    <button @click="downloadAlbum" class="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-full text-sm transition shadow-lg flex items-center">
-                        <i class="fa-solid fa-cloud-arrow-down mr-2"></i> <span id="dl-text">打包下載</span>
-                    </button>
-                </div>
-                <h2 class="text-3xl font-bold mb-2">{{ currentAlbum.name }}</h2>
-                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-4">
-                    <div v-for="(photo, index) in currentAlbum.photos" :key="photo.id" @click="openLightbox(index)"
-                         class="relative aspect-square bg-gray-100 rounded-lg overflow-hidden cursor-pointer group">
-                        <img :src="photo.c" loading="lazy" class="w-full h-full object-cover transition duration-500 group-hover:scale-110">
-                        <span v-if="photo.t === 'v'" class="absolute top-2 right-2 text-white drop-shadow-md"><i class="fa-solid fa-video"></i></span>
+                <div v-else>
+                    
+                    <div v-if="currentFolders.length > 0" class="mb-8">
+                        <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">資料夾</h3>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                            <div v-for="folder in currentFolders" :key="folder.id" @click="enterFolder(folder)"
+                                 class="folder-card bg-white p-4 rounded-xl border border-gray-200 cursor-pointer transition flex flex-col items-center justify-center text-center h-32 relative group">
+                                <i class="fa-solid fa-folder text-4xl text-yellow-400 mb-2 group-hover:text-yellow-500 transition"></i>
+                                <span class="text-sm font-medium text-gray-700 line-clamp-2">{{ folder.name }}</span>
+                                <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition"><i class="fa-solid fa-chevron-right text-gray-300"></i></div>
+                            </div>
+                        </div>
                     </div>
+
+                    <div v-if="currentFiles.length > 0">
+                        <div class="flex justify-between items-end mb-3">
+                            <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider">照片 ({{ currentFiles.length }})</h3>
+                            <button @click="downloadCurrentFolder" class="text-xs bg-gray-800 text-white px-3 py-1.5 rounded-full hover:bg-gray-700 transition">
+                                <i class="fa-solid fa-download mr-1"></i> 打包此層
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-4">
+                            <div v-for="(file, index) in currentFiles" :key="file.id" @click="openLightbox(index)"
+                                 class="relative aspect-square bg-gray-100 rounded-lg overflow-hidden cursor-pointer group shadow-sm hover:shadow-md transition">
+                                <img :src="file.cover" loading="lazy" class="w-full h-full object-cover transition duration-500 group-hover:scale-110">
+                                <span v-if="file.mime === 'v'" class="absolute top-2 right-2 text-white drop-shadow-md"><i class="fa-solid fa-video"></i></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-if="currentFolders.length === 0 && currentFiles.length === 0" class="text-center py-20 opacity-50">
+                        <i class="fa-regular fa-folder-open text-6xl mb-4 text-gray-300"></i>
+                        <p>此資料夾是空的</p>
+                    </div>
+
                 </div>
             </div>
         </main>
-        
-        <footer class="bg-white border-t py-6 text-center text-sm text-gray-400">© 2024 Qu Album Enterprise.</footer>
     </div>
 
     <div v-if="showLightbox" class="fixed inset-0 z-[100] bg-black/95 flex flex-col" @keydown.esc="closeLightbox" tabindex="0">
         <div class="flex justify-between items-center p-4 text-white bg-gradient-to-b from-black/80 to-transparent z-50">
             <div class="flex items-center space-x-4">
-                <span class="font-bold">{{ currentPhotoIndex + 1 }} / {{ currentAlbum.photos.length }}</span>
-                <button @click="toggleDrawing" :class="isDrawingMode ? 'bg-blue-600' : 'bg-gray-700'" class="px-3 py-1.5 rounded-full text-sm border border-gray-600 flex items-center"><i class="fa-solid fa-pen-nib mr-2"></i> {{ isDrawingMode ? '畫筆開啟' : '畫筆模式' }}</button>
+                <span class="font-bold">{{ currentPhotoIndex + 1 }} / {{ currentFiles.length }}</span>
+                <button @click="toggleDrawing" :class="isDrawingMode ? 'bg-blue-600' : 'bg-gray-700'" class="px-3 py-1.5 rounded-full text-sm border border-gray-600 flex items-center"><i class="fa-solid fa-pen-nib mr-2"></i></button>
                 <div v-if="isDrawingMode" class="flex space-x-2">
                     <button @click="penColor = '#ef4444'" class="w-6 h-6 rounded-full bg-red-500 border-2" :class="penColor==='#ef4444'?'border-white':'border-transparent'"></button>
                     <button @click="penColor = '#eab308'" class="w-6 h-6 rounded-full bg-yellow-500 border-2" :class="penColor==='#eab308'?'border-white':'border-transparent'"></button>
@@ -130,10 +152,9 @@
         </div>
         <div class="flex-1 relative flex items-center justify-center overflow-hidden bg-black select-none">
             <canvas ref="drawCanvas" v-show="isDrawingMode" class="absolute inset-0 z-20 cursor-pen touch-none"
-                @mousedown="startDraw" @mousemove="drawing" @mouseup="stopDraw" @mouseout="stopDraw"
-                @touchstart="startDraw" @touchmove="drawing" @touchend="stopDraw"></canvas>
-            <img v-if="currentPhoto.t === 'i'" :src="currentPhoto.u" class="max-h-full max-w-full object-contain z-10 pointer-events-none">
-            <video v-else :src="getProxyUrl(currentPhoto.u)" controls autoplay class="max-h-full max-w-full z-10"></video>
+                @mousedown="startDraw" @mousemove="drawing" @mouseup="stopDraw" @mouseout="stopDraw" @touchstart="startDraw" @touchmove="drawing" @touchend="stopDraw"></canvas>
+            <img v-if="currentPhoto.mime === 'i'" :src="currentPhoto.url" class="max-h-full max-w-full object-contain z-10 pointer-events-none">
+            <video v-else :src="getProxyUrl(currentPhoto.url)" controls autoplay class="max-h-full max-w-full z-10"></video>
             <button v-if="!isDrawingMode" @click="prevPhoto" class="absolute left-4 z-30 w-12 h-12 rounded-full bg-black/50 hover:bg-white/20 text-white flex items-center justify-center"><i class="fa-solid fa-chevron-left text-2xl"></i></button>
             <button v-if="!isDrawingMode" @click="nextPhoto" class="absolute right-4 z-30 w-12 h-12 rounded-full bg-black/50 hover:bg-white/20 text-white flex items-center justify-center"><i class="fa-solid fa-chevron-right text-2xl"></i></button>
         </div>
@@ -144,14 +165,19 @@
     const { createApp, ref, computed, onMounted, nextTick } = Vue;
     createApp({
         setup() {
+            // State
             const loading = ref(true);
             const error = ref(null);
-            const deploymentId = ref('');
             const inputDeploymentId = ref('');
             const sysInfo = ref({});
-            const albums = ref([]);
+            const albums = ref([]); // 根目錄列表
+            
+            // Navigation State
             const viewMode = ref('bookshelf');
-            const currentAlbum = ref(null);
+            const breadcrumbs = ref([]); // [ {id, name, node}, ... ]
+            const currentNode = ref(null); // 當前顯示的資料夾節點
+
+            // Lightbox State
             const showLightbox = ref(false);
             const currentPhotoIndex = ref(0);
             const isDrawingMode = ref(false);
@@ -160,104 +186,110 @@
             const ctx = ref(null);
             const isPainting = ref(false);
 
-            const currentPhoto = computed(() => currentAlbum.value ? currentAlbum.value.photos[currentPhotoIndex.value] : {});
+            // Computed
+            // 當前目錄下的「子資料夾」
+            const currentFolders = computed(() => {
+                if (!currentNode.value || !currentNode.value.children) return [];
+                return currentNode.value.children.filter(c => c.type === 'folder');
+            });
+            // 當前目錄下的「檔案(照片/影片)」
+            const currentFiles = computed(() => {
+                if (!currentNode.value || !currentNode.value.children) return [];
+                return currentNode.value.children.filter(c => c.type === 'file');
+            });
+            // Lightbox 用
+            const currentPhoto = computed(() => currentFiles.value[currentPhotoIndex.value] || {});
 
             onMounted(async () => {
-                const urlParams = new URLSearchParams(window.location.search);
-                const id = urlParams.get('id');
-                if (!id) {
-                    loading.value = false;
-                    error.value = "HOME"; // 顯示輸入 ID 介面
-                    return;
-                }
-                deploymentId.value = id;
+                const id = new URLSearchParams(window.location.search).get('id');
+                if (!id) { loading.value = false; error.value = "HOME"; return; }
                 await fetchData(id);
                 window.addEventListener('keydown', (e) => {
-                    if (!showLightbox.value) return;
-                    if (e.key === 'ArrowRight') nextPhoto();
-                    if (e.key === 'ArrowLeft') prevPhoto();
-                    if (e.key === 'Escape') closeLightbox();
+                    if (showLightbox.value) {
+                        if (e.key === 'ArrowRight') nextPhoto();
+                        if (e.key === 'ArrowLeft') prevPhoto();
+                        if (e.key === 'Escape') closeLightbox();
+                    }
                 });
             });
 
-            const openById = () => {
-                if(inputDeploymentId.value.trim()) {
-                    window.location.href = `?id=${inputDeploymentId.value.trim()}`;
-                }
-            };
-            
+            const openById = () => { if(inputDeploymentId.value) window.location.href = `?id=${inputDeploymentId.value.trim()}`; };
             const goHomeRoot = () => { window.location.href = window.location.pathname; };
+            const getProxyUrl = (u) => `/api/proxy?url=${encodeURIComponent(u)}`;
+            const copyShareLink = () => { navigator.clipboard.writeText(window.location.href).then(() => alert('已複製連結')); };
 
             const fetchData = async (id) => {
                 try {
                     const res = await fetch(`/api/albums?id=${id}`);
-                    if (!res.ok) throw new Error('相簿資料讀取失敗 (可能 ID 錯誤或尚未同步)');
+                    if (!res.ok) throw new Error('讀取失敗');
                     const data = await res.json();
                     if (data.error) throw new Error(data.error);
                     sysInfo.value = data.sys;
-                    albums.value = data.albums;
-                } catch (err) {
-                    error.value = err.message;
-                } finally {
-                    loading.value = false;
-                }
+                    albums.value = data.albums; // 這裡是所有相簿的根節點
+                } catch (err) { error.value = err.message; } finally { loading.value = false; }
             };
 
-            const goHome = () => { viewMode.value = 'bookshelf'; currentAlbum.value = null; };
-            const openAlbum = (album) => { currentAlbum.value = album; viewMode.value = 'gallery'; };
+            // Navigation Logic
+            const goHome = () => {
+                viewMode.value = 'bookshelf';
+                breadcrumbs.value = [];
+                currentNode.value = null;
+            };
+
+            const enterFolder = (folderNode) => {
+                currentNode.value = folderNode;
+                breadcrumbs.value.push({ id: folderNode.id, name: folderNode.name, node: folderNode });
+                viewMode.value = 'explorer';
+            };
+
+            const navigateBreadcrumb = (index) => {
+                const target = breadcrumbs.value[index];
+                currentNode.value = target.node;
+                // 保留 0 到 index 的路徑，切掉後面的
+                breadcrumbs.value = breadcrumbs.value.slice(0, index + 1);
+            };
+
+            // Lightbox Logic
             const openLightbox = (idx) => { currentPhotoIndex.value = idx; showLightbox.value = true; isDrawingMode.value = false; };
             const closeLightbox = () => { showLightbox.value = false; clearCanvas(); };
-            const nextPhoto = () => { currentPhotoIndex.value = (currentPhotoIndex.value + 1) % currentAlbum.value.photos.length; clearCanvas(); };
-            const prevPhoto = () => { currentPhotoIndex.value = (currentPhotoIndex.value - 1 + currentAlbum.value.photos.length) % currentAlbum.value.photos.length; clearCanvas(); };
+            const nextPhoto = () => { currentPhotoIndex.value = (currentPhotoIndex.value + 1) % currentFiles.value.length; clearCanvas(); };
+            const prevPhoto = () => { currentPhotoIndex.value = (currentPhotoIndex.value - 1 + currentFiles.value.length) % currentFiles.value.length; clearCanvas(); };
 
-            const toggleDrawing = async () => {
-                isDrawingMode.value = !isDrawingMode.value;
-                if (isDrawingMode.value) { await nextTick(); initCanvas(); }
-            };
-            const initCanvas = () => {
-                const c = drawCanvas.value; if(!c) return;
-                c.width = window.innerWidth; c.height = window.innerHeight;
-                ctx.value = c.getContext('2d');
-                ctx.value.lineCap = 'round'; ctx.value.lineWidth = 5;
-            };
+            // Drawing Logic (Standard)
+            const toggleDrawing = async () => { isDrawingMode.value = !isDrawingMode.value; if(isDrawingMode.value) { await nextTick(); initCanvas(); } };
+            const initCanvas = () => { const c = drawCanvas.value; if(!c) return; c.width = window.innerWidth; c.height = window.innerHeight; ctx.value = c.getContext('2d'); ctx.value.lineCap='round'; ctx.value.lineWidth=5; };
             const getPos = (e) => (e.touches && e.touches[0]) ? {x:e.touches[0].clientX, y:e.touches[0].clientY} : {x:e.clientX, y:e.clientY};
             const startDraw = (e) => { if(!isDrawingMode.value) return; isPainting.value = true; const {x,y} = getPos(e); ctx.value.strokeStyle = penColor.value; ctx.value.beginPath(); ctx.value.moveTo(x,y); };
             const drawing = (e) => { if(!isPainting.value) return; e.preventDefault(); const {x,y} = getPos(e); ctx.value.lineTo(x,y); ctx.value.stroke(); };
             const stopDraw = () => { isPainting.value = false; if(ctx.value) ctx.value.closePath(); };
             const clearCanvas = () => { if(ctx.value) ctx.value.clearRect(0,0,drawCanvas.value.width, drawCanvas.value.height); };
 
-            const downloadAlbum = async () => {
+            // Download Logic (Current Level Only)
+            const downloadCurrentFolder = async () => {
                 const zip = new JSZip();
-                const textEl = document.getElementById('dl-text');
-                const originalText = textEl.textContent;
+                const files = currentFiles.value;
+                if(files.length === 0) return alert('此資料夾沒有照片可下載');
+                
+                alert(`開始打包 ${files.length} 張照片，請稍候...`);
+                
                 try {
-                    const photos = currentAlbum.value.photos;
-                    textEl.textContent = `打包中 (0/${photos.length})...`;
-                    await Promise.all(photos.map(async (p, i) => {
+                    await Promise.all(files.map(async (p, i) => {
                         try {
-                            const res = await fetch(`/api/proxy?url=${encodeURIComponent(p.u)}`);
-                            if(!res.ok) throw new Error('Net err');
-                            zip.file(`${currentAlbum.value.name}_${i+1}.${p.t==='v'?'mp4':'jpg'}`, await res.blob());
-                            textEl.textContent = `打包中 (${i+1}/${photos.length})...`;
+                            const res = await fetch(getProxyUrl(p.url));
+                            if(res.ok) zip.file(`${p.name}`, await res.blob());
                         } catch(e){}
                     }));
-                    textEl.textContent = "壓縮中...";
-                    saveAs(await zip.generateAsync({type:"blob"}), `${currentAlbum.value.name}.zip`);
-                    alert('下載開始');
+                    saveAs(await zip.generateAsync({type:"blob"}), `${currentNode.value.name}.zip`);
                 } catch(e) { alert('下載失敗'); }
-                textEl.textContent = originalText;
-            };
-            
-            const copyShareLink = () => {
-                navigator.clipboard.writeText(window.location.href).then(() => alert('連結已複製！'));
             };
 
             return {
-                loading, error, sysInfo, albums, viewMode, currentAlbum, showLightbox, currentPhotoIndex, currentPhoto, isDrawingMode, penColor, drawCanvas, inputDeploymentId,
-                goHome, openAlbum, openLightbox, closeLightbox, nextPhoto, prevPhoto, toggleDrawing, startDraw, drawing, stopDraw, clearCanvas, downloadAlbum, 
-                getProxyUrl: (u) => `/api/proxy?url=${encodeURIComponent(u)}`,
-                formatDate: (d) => d ? new Date(d).toLocaleString('zh-TW') : '',
-                openById, goHomeRoot, copyShareLink
+                loading, error, inputDeploymentId, sysInfo, albums, 
+                viewMode, breadcrumbs, currentFolders, currentFiles, currentPhoto,
+                goHome, enterFolder, navigateBreadcrumb, openById, goHomeRoot, copyShareLink,
+                showLightbox, currentPhotoIndex, openLightbox, closeLightbox, nextPhoto, prevPhoto,
+                isDrawingMode, penColor, drawCanvas, toggleDrawing, startDraw, drawing, stopDraw, clearCanvas,
+                getProxyUrl, downloadCurrentFolder
             };
         }
     }).mount('#app');
