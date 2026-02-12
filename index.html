@@ -73,20 +73,21 @@
         
         /* 播放器專用樣式 */
         .player-container { background: #000; overflow: hidden; }
+        .cursor-none { cursor: none !important; } /* 隱藏滑鼠 */
+        
         /* 跑馬燈軌道 */
         .marquee-track { display: flex; width: max-content; }
         .marquee-col { display: flex; flex-direction: column; height: max-content; }
-        /* 隱藏捲軸 */
+        
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         .custom-scroll::-webkit-scrollbar { width: 6px; }
         .custom-scroll::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.2); border-radius: 3px; }
         
-        /* HUD 自動隱藏 */
-        .hud-panel { transition: opacity 0.5s ease; opacity: 0; }
-        .player-wrapper:hover .hud-panel, .hud-panel:hover { opacity: 1; }
+        /* HUD 自動隱藏機制 (由 Vue class 控制) */
+        .hud-panel { transition: opacity 0.5s ease; opacity: 0; pointer-events: none; }
+        .hud-visible { opacity: 1; pointer-events: auto; }
         
-        /* 圖片容器 (底片風格) */
         .film-frame {
             background: #111;
             border-radius: 4px;
@@ -99,8 +100,7 @@
 <body class="font-sans antialiased transition-colors duration-300">
 
 <div id="app" v-cloak>
-    <div class="fixed bottom-2 right-2 text-xs text-theme-sub opacity-20 pointer-events-none z-50">Qu Album v5.1</div>
-
+    
     <div v-if="isPortalMode" class="fixed inset-0 z-[200] bg-theme-bg flex flex-col items-center justify-center p-4">
         <div class="bg-theme-card p-8 rounded-2xl shadow-xl max-w-2xl w-full border border-theme-border">
             <h1 class="text-3xl font-bold text-theme-text mb-6 flex items-center justify-center">
@@ -132,10 +132,34 @@
             <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-theme-primary mb-4"></div>
             <p class="text-theme-sub animate-pulse">讀取相簿櫃中...</p>
         </div>
+
         <div v-else-if="error" class="fixed inset-0 flex flex-col items-center justify-center bg-theme-bg p-4 text-center z-40">
-             <h2 class="text-2xl font-bold text-theme-text mb-2">請輸入 ID 或發生錯誤</h2>
-             <input type="text" v-model="inputDeploymentId" placeholder="輸入 UUID" class="border border-theme-border rounded px-4 py-2 mb-2">
-             <button @click="openById" class="bg-theme-primary text-white px-4 py-2 rounded">進入</button>
+            <div v-if="error === 'HOME'" class="bg-theme-card p-10 rounded-2xl shadow-xl max-w-md w-full border border-theme-border relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-2 bg-theme-primary"></div>
+                <div class="mb-8 flex justify-center">
+                    <div class="w-24 h-24 bg-theme-bg border-2 border-theme-border rounded-full flex items-center justify-center">
+                        <i class="fa-solid fa-camera-retro text-5xl text-theme-primary"></i>
+                    </div>
+                </div>
+                <h2 class="text-3xl font-bold text-theme-text mb-2 tracking-tight">Qu 相簿入口</h2>
+                <p class="text-theme-sub text-sm mb-8">請輸入您的相簿櫃 UUID</p>
+                
+                <div class="flex flex-col space-y-4">
+                    <input type="text" v-model="inputDeploymentId" placeholder="例如: 1234-abcd..." 
+                           class="w-full border-2 border-theme-border bg-theme-bg text-theme-text rounded-xl px-4 py-3 focus:ring-2 focus:ring-theme-primary focus:border-theme-primary outline-none text-center font-mono text-lg transition-all">
+                    <button @click="openById" class="w-full bg-theme-primary hover:bg-theme-hover text-white px-6 py-3.5 rounded-xl font-bold transition shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+                        進入相簿
+                    </button>
+                </div>
+                <p class="mt-8 text-xs text-theme-sub border-t border-theme-border pt-4">© 2024 Qu Album Enterprise <span class="ml-2 font-mono bg-theme-bg px-1 rounded text-[10px]">v5.2</span></p>
+            </div>
+
+            <div v-else>
+                <i class="fa-solid fa-triangle-exclamation text-6xl text-red-400 mb-4"></i>
+                <h2 class="text-2xl font-bold text-theme-text mb-2">存取拒絕</h2>
+                <p class="text-theme-sub max-w-md bg-theme-card p-4 rounded border border-red-100 shadow-sm">{{ error }}</p>
+                <button @click="goHomeRoot" class="mt-6 text-theme-primary hover:underline">回到首頁</button>
+            </div>
         </div>
 
         <div v-else class="min-h-screen flex flex-col">
@@ -147,7 +171,6 @@
                             <span class="font-bold text-xl tracking-tight text-theme-text">{{ sysInfo.title || 'Qu Album' }}</span>
                         </div>
                         <div class="flex items-center space-x-2">
-                            
                             <div class="relative hidden md:block" v-if="currentFiles.length > 0">
                                 <button @click="showPlayMenu = !showPlayMenu" class="flex items-center text-theme-sub hover:text-theme-primary transition px-3 py-2 rounded hover:bg-theme-bg font-bold">
                                     <i class="fa-solid fa-play mr-2"></i> 展示
@@ -165,9 +188,8 @@
                                 </div>
                                 <div v-if="showPlayMenu" @click="showPlayMenu = false" class="fixed inset-0 z-40"></div>
                             </div>
-
                             <div class="relative">
-                                <button @click="showThemeMenu = !showThemeMenu" class="text-theme-sub hover:text-theme-primary transition p-2 rounded-full hover:bg-theme-bg" title="切換風格">
+                                <button @click="showThemeMenu = !showThemeMenu" class="text-theme-sub hover:text-theme-primary transition p-2 rounded-full hover:bg-theme-bg">
                                     <i class="fa-solid fa-palette text-lg"></i>
                                 </button>
                                 <div v-if="showThemeMenu" class="absolute right-0 mt-2 w-40 bg-theme-card rounded-lg shadow-xl border border-theme-border py-1 z-50 animate-fade-in">
@@ -178,8 +200,7 @@
                                 </div>
                                 <div v-if="showThemeMenu" @click="showThemeMenu = false" class="fixed inset-0 z-40"></div>
                             </div>
-
-                            <button @click="copyShareLink" class="text-theme-sub hover:text-theme-primary transition p-2" title="複製連結"><i class="fa-solid fa-share-nodes text-lg"></i></button>
+                            <button @click="copyShareLink" class="text-theme-sub hover:text-theme-primary transition p-2"><i class="fa-solid fa-share-nodes text-lg"></i></button>
                         </div>
                     </div>
                 </div>
@@ -198,8 +219,7 @@
                     <div v-if="viewMode === 'bookshelf'">
                         <h2 class="text-2xl font-bold mb-4 border-l-4 border-theme-primary pl-3 text-theme-text">相簿列表</h2>
                         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                            <div v-for="album in albums" :key="album.id" @click="enterFolder(album)"
-                                 class="group bg-theme-card rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden border border-theme-border transform hover:-translate-y-1">
+                            <div v-for="album in albums" :key="album.id" @click="enterFolder(album)" class="group bg-theme-card rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden border border-theme-border transform hover:-translate-y-1">
                                 <div class="aspect-w-4 aspect-h-3 bg-theme-bg relative overflow-hidden">
                                     <img :src="album.cover || 'https://via.placeholder.com/400x300?text=No+Cover'" class="object-cover w-full h-full group-hover:scale-110 transition-transform duration-700">
                                     <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all"></div>
@@ -207,21 +227,16 @@
                                 </div>
                                 <div class="p-4">
                                     <h3 class="font-bold text-lg text-theme-text truncate group-hover:text-theme-primary">{{ album.name }}</h3>
-                                    <div class="flex justify-between items-center mt-2 text-sm text-theme-sub">
-                                        <span><i class="fa-regular fa-folder-open mr-1"></i> 進入相簿</span>
-                                        <i class="fa-solid fa-arrow-right"></i>
-                                    </div>
+                                    <div class="flex justify-between items-center mt-2 text-sm text-theme-sub"><span><i class="fa-regular fa-folder-open mr-1"></i> 進入相簿</span><i class="fa-solid fa-arrow-right"></i></div>
                                 </div>
                             </div>
                         </div>
                     </div>
-
                     <div v-else>
                         <div v-if="currentFolders.length > 0" class="mb-8">
                             <h3 class="text-sm font-bold text-theme-sub uppercase tracking-wider mb-3">資料夾</h3>
                             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                                <div v-for="folder in currentFolders" :key="folder.id" @click="enterFolder(folder)"
-                                     class="folder-card bg-theme-card p-4 rounded-xl border border-theme-border cursor-pointer transition flex flex-col items-center justify-center text-center h-32 relative group">
+                                <div v-for="folder in currentFolders" :key="folder.id" @click="enterFolder(folder)" class="folder-card bg-theme-card p-4 rounded-xl border border-theme-border cursor-pointer transition flex flex-col items-center justify-center text-center h-32 relative group">
                                     <div class="relative">
                                          <i class="fa-solid fa-folder text-4xl text-yellow-400 mb-2 group-hover:text-yellow-500 transition"></i>
                                          <i v-if="folder.pwd" class="fa-solid fa-lock text-xs absolute -right-1 -bottom-0 text-red-500 bg-theme-card rounded-full p-0.5 border border-red-100"></i>
@@ -230,17 +245,13 @@
                                 </div>
                             </div>
                         </div>
-
                         <div v-if="currentFiles.length > 0">
                             <div class="flex justify-between items-end mb-3">
                                 <h3 class="text-sm font-bold text-theme-sub uppercase tracking-wider">照片 ({{ currentFiles.length }})</h3>
-                                <button @click="downloadCurrentFolder" class="text-xs bg-theme-text text-theme-bg px-3 py-1.5 rounded-full hover:opacity-80 transition flex items-center shadow-md border border-theme-border">
-                                    <i class="fa-solid fa-download mr-1"></i> 打包下載本頁照片
-                                </button>
+                                <button @click="downloadCurrentFolder" class="text-xs bg-theme-text text-theme-bg px-3 py-1.5 rounded-full hover:opacity-80 transition flex items-center shadow-md border border-theme-border"><i class="fa-solid fa-download mr-1"></i> 打包下載本頁照片</button>
                             </div>
                             <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-4">
-                                <div v-for="(file, index) in currentFiles" :key="file.id" @click="openLightbox(index)"
-                                     class="relative aspect-square bg-theme-bg rounded-lg overflow-hidden cursor-pointer group shadow-sm hover:shadow-md transition border border-theme-border">
+                                <div v-for="(file, index) in currentFiles" :key="file.id" @click="openLightbox(index)" class="relative aspect-square bg-theme-bg rounded-lg overflow-hidden cursor-pointer group shadow-sm hover:shadow-md transition border border-theme-border">
                                     <img :src="file.cover" loading="lazy" class="w-full h-full object-cover transition duration-500 group-hover:scale-110">
                                     <span v-if="file.mime === 'v'" class="absolute top-2 right-2 text-white drop-shadow-md"><i class="fa-solid fa-video"></i></span>
                                 </div>
@@ -270,12 +281,14 @@
             </div>
         </transition>
 
-        <div v-if="isPlaying" class="fixed inset-0 z-[300] bg-black player-container player-wrapper" @mousemove="onPlayerMouseMove">
+        <div v-if="isPlaying" 
+             class="fixed inset-0 z-[300] bg-black player-container player-wrapper" 
+             :class="{ 'cursor-none': !showHud }"
+             @mousemove="onPlayerMouseMove">
             
             <div v-if="playMode === 'slide'" class="w-full h-full flex items-center justify-center relative">
                 <transition name="fade" mode="out-in">
-                    <img :key="playList[currentPlayIndex].id" :src="playList[currentPlayIndex].url" 
-                         class="max-h-full max-w-full object-contain shadow-2xl">
+                    <img :key="playList[currentPlayIndex].id" :src="playList[currentPlayIndex].url" class="max-h-full max-w-full object-contain shadow-2xl">
                 </transition>
             </div>
 
@@ -307,43 +320,15 @@
                 </div>
             </div>
 
-            <div class="hud-panel absolute bottom-0 left-0 right-0 p-6 flex justify-center items-center bg-gradient-to-t from-black/90 to-transparent">
-                <div class="bg-gray-800/80 backdrop-blur-md rounded-full px-6 py-3 flex items-center space-x-6 border border-gray-600 shadow-2xl">
-                    
-                    <button @click="stopPlay" class="text-white hover:text-red-400 transition flex flex-col items-center">
-                        <i class="fa-solid fa-power-off text-xl mb-1"></i>
-                        <span class="text-[10px] uppercase">Exit</span>
-                    </button>
-
+            <div class="hud-panel absolute bottom-0 left-0 right-0 p-6 flex justify-center items-center bg-gradient-to-t from-black/90 to-transparent"
+                 :class="{ 'hud-visible': showHud }">
+                <div class="bg-gray-800/80 backdrop-blur-md rounded-full px-6 py-3 flex items-center space-x-6 border border-gray-600 shadow-2xl pointer-events-auto">
+                    <button @click="stopPlay" class="text-white hover:text-red-400 transition flex flex-col items-center"><i class="fa-solid fa-power-off text-xl mb-1"></i><span class="text-[10px] uppercase">Exit</span></button>
                     <div class="h-8 w-px bg-gray-600"></div>
-
-                    <button @click="togglePause" class="text-white hover:text-blue-400 transition flex flex-col items-center w-12">
-                        <i :class="isPaused ? 'fa-solid fa-play' : 'fa-solid fa-pause'" class="text-xl mb-1"></i>
-                        <span class="text-[10px] uppercase">{{ isPaused ? 'Play' : 'Pause' }}</span>
-                    </button>
-
-                    <div v-if="playMode === 'slide'" class="flex items-center space-x-2">
-                         <span class="text-gray-400 text-xs">秒數</span>
-                         <select v-model="playConfig.interval" class="bg-gray-900 text-white text-sm rounded border border-gray-600 px-2 py-1 outline-none">
-                             <option :value="3000">3s</option>
-                             <option :value="5000">5s</option>
-                             <option :value="10000">10s</option>
-                         </select>
-                    </div>
-
-                    <div v-if="playMode !== 'slide'" class="flex items-center space-x-2">
-                        <span class="text-gray-400 text-xs">速度</span>
-                        <div class="flex bg-gray-900 rounded-lg p-1 border border-gray-600">
-                            <button @click="playConfig.speed = 60" :class="playConfig.speed === 60 ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'" class="px-3 py-1 text-xs rounded transition">慢</button>
-                            <button @click="playConfig.speed = 40" :class="playConfig.speed === 40 ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'" class="px-3 py-1 text-xs rounded transition">中</button>
-                            <button @click="playConfig.speed = 20" :class="playConfig.speed === 20 ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'" class="px-3 py-1 text-xs rounded transition">快</button>
-                        </div>
-                    </div>
-
-                    <div v-if="playMode === 'slide'" class="flex space-x-4 pl-4 border-l border-gray-600">
-                         <button @click="prevPlay" class="text-white hover:text-blue-400"><i class="fa-solid fa-backward-step fa-lg"></i></button>
-                         <button @click="nextPlay" class="text-white hover:text-blue-400"><i class="fa-solid fa-forward-step fa-lg"></i></button>
-                    </div>
+                    <button @click="togglePause" class="text-white hover:text-blue-400 transition flex flex-col items-center w-12"><i :class="isPaused ? 'fa-solid fa-play' : 'fa-solid fa-pause'" class="text-xl mb-1"></i><span class="text-[10px] uppercase">{{ isPaused ? 'Play' : 'Pause' }}</span></button>
+                    <div v-if="playMode === 'slide'" class="flex items-center space-x-2"><span class="text-gray-400 text-xs">秒數</span><select v-model="playConfig.interval" class="bg-gray-900 text-white text-sm rounded border border-gray-600 px-2 py-1 outline-none"><option :value="3000">3s</option><option :value="5000">5s</option><option :value="10000">10s</option></select></div>
+                    <div v-if="playMode !== 'slide'" class="flex items-center space-x-2"><span class="text-gray-400 text-xs">速度</span><div class="flex bg-gray-900 rounded-lg p-1 border border-gray-600"><button @click="playConfig.speed = 60" :class="playConfig.speed === 60 ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'" class="px-3 py-1 text-xs rounded transition">慢</button><button @click="playConfig.speed = 40" :class="playConfig.speed === 40 ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'" class="px-3 py-1 text-xs rounded transition">中</button><button @click="playConfig.speed = 20" :class="playConfig.speed === 20 ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'" class="px-3 py-1 text-xs rounded transition">快</button></div></div>
+                    <div v-if="playMode === 'slide'" class="flex space-x-4 pl-4 border-l border-gray-600"><button @click="prevPlay" class="text-white hover:text-blue-400"><i class="fa-solid fa-backward-step fa-lg"></i></button><button @click="nextPlay" class="text-white hover:text-blue-400"><i class="fa-solid fa-forward-step fa-lg"></i></button></div>
                 </div>
             </div>
         </div>
@@ -353,10 +338,7 @@
                 <div class="flex items-center space-x-4">
                     <span class="font-bold font-mono">{{ currentPhotoIndex + 1 }} / {{ currentFiles.length }}</span>
                     <button @click="toggleDrawing" :class="isDrawingMode ? 'bg-theme-primary border-transparent text-white' : 'bg-gray-800 border-gray-600'" class="px-3 py-1.5 rounded-full text-sm border flex items-center transition transition-all"><i class="fa-solid fa-pen-nib mr-2"></i> 標記</button>
-                    <div v-if="isDrawingMode" class="flex space-x-2 animate-fade-in items-center pl-2 border-l border-gray-700">
-                        <template v-for="color in colorPalette" :key="color.hex"><button @click="penColor = color.hex" class="w-6 h-6 rounded-full border-2 transition box-content" :class="[color.bg, penColor === color.hex ? 'border-white scale-110 shadow-sm' : 'border-transparent opacity-80 hover:opacity-100']"></button></template>
-                        <button @click="clearCanvas" class="text-xs bg-gray-800 px-2 py-1 rounded ml-2 hover:bg-gray-700 text-gray-300"><i class="fa-solid fa-trash-can mr-1"></i> 清除</button>
-                    </div>
+                    <div v-if="isDrawingMode" class="flex space-x-2 animate-fade-in items-center pl-2 border-l border-gray-700"><template v-for="color in colorPalette" :key="color.hex"><button @click="penColor = color.hex" class="w-6 h-6 rounded-full border-2 transition box-content" :class="[color.bg, penColor === color.hex ? 'border-white scale-110 shadow-sm' : 'border-transparent opacity-80 hover:opacity-100']"></button></template><button @click="clearCanvas" class="text-xs bg-gray-800 px-2 py-1 rounded ml-2 hover:bg-gray-700 text-gray-300"><i class="fa-solid fa-trash-can mr-1"></i> 清除</button></div>
                 </div>
                 <button @click="closeLightbox" class="w-10 h-10 rounded-full bg-gray-800 hover:bg-red-500 flex items-center justify-center transition"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
@@ -375,122 +357,57 @@
     const { createApp, ref, computed, onMounted, nextTick, watch } = Vue;
     createApp({
         setup() {
-            // --- Theme Logic ---
-            const themes = [
-                { id: 'default', name: '🏢 簡約白' }, { id: 'dark', name: '🌙 暗黑模式' },
-                { id: 'festive', name: '🧧 喜氣紅' }, { id: 'nature', name: '🌿 護眼綠' }, { id: 'luxury', name: '🌆 沉穩金' },
-            ];
+            // Theme Logic
+            const themes = [{ id: 'default', name: '🏢 簡約白' }, { id: 'dark', name: '🌙 暗黑模式' }, { id: 'festive', name: '🧧 喜氣紅' }, { id: 'nature', name: '🌿 護眼綠' }, { id: 'luxury', name: '🌆 沉穩金' }];
             const currentTheme = ref('default');
             const showThemeMenu = ref(false);
-            const applyThemeToBody = (themeId) => {
-                themes.forEach(t => document.body.classList.remove(`theme-${t.id}`));
-                if (themeId !== 'default') document.body.classList.add(`theme-${themeId}`);
-            };
+            const applyThemeToBody = (themeId) => { themes.forEach(t => document.body.classList.remove(`theme-${t.id}`)); if (themeId !== 'default') document.body.classList.add(`theme-${themeId}`); };
             watch(currentTheme, (newVal) => { applyThemeToBody(newVal); localStorage.setItem('qu-theme', newVal); });
             const setTheme = (id) => { currentTheme.value = id; showThemeMenu.value = false; };
-            const initTheme = () => {
-                const saved = localStorage.getItem('qu-theme');
-                if (saved && themes.some(t => t.id === saved)) currentTheme.value = saved;
-                else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) currentTheme.value = 'dark';
-                applyThemeToBody(currentTheme.value);
-            };
+            const initTheme = () => { const saved = localStorage.getItem('qu-theme'); if (saved && themes.some(t => t.id === saved)) currentTheme.value = saved; else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) currentTheme.value = 'dark'; applyThemeToBody(currentTheme.value); };
 
-            // --- Player Logic (Auto Play) ---
+            // Player Logic
             const isPlaying = ref(false);
-            const playMode = ref('slide'); // 'slide', 'h-wall', 'v-wall'
+            const playMode = ref('slide');
             const showPlayMenu = ref(false);
             const isPaused = ref(false);
             const playList = ref([]);
             const currentPlayIndex = ref(0);
-            const playConfig = ref({ interval: 5000, speed: 40 }); // speed: 60(Slow), 40(Mid), 20(Fast)
+            const playConfig = ref({ interval: 5000, speed: 40 });
+            const showHud = ref(true); // 控制 HUD 顯示
             let slideTimer = null;
             let wakeLockSentinel = null;
+            let hudTimeout = null;
 
-            // 1. 準備播放清單 (檔名倒序 + 取前30)
-            const preparePlayList = () => {
-                const list = [...currentFiles.value];
-                // 檔名倒序 Z->A (模擬最新)
-                list.sort((a, b) => b.name.localeCompare(a.name));
-                return list.slice(0, 30);
-            };
-
-            // 2. 請求防休眠
-            const toggleWakeLock = async (active) => {
-                try {
-                    if (active && 'wakeLock' in navigator) {
-                        wakeLockSentinel = await navigator.wakeLock.request('screen');
-                    } else if (!active && wakeLockSentinel) {
-                        await wakeLockSentinel.release();
-                        wakeLockSentinel = null;
-                    }
-                } catch (e) { console.warn('Wake Lock error:', e); }
-            };
-
-            // 3. 開始播放
-            const startPlay = async (mode) => {
-                playList.value = preparePlayList();
-                if (playList.value.length === 0) return alert('無照片可播放');
-                
-                playMode.value = mode;
-                showPlayMenu.value = false;
-                isPlaying.value = true;
-                isPaused.value = false;
-                currentPlayIndex.value = 0;
-
-                // 全螢幕 & 防休眠
-                try {
-                    if (document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen();
-                } catch(e){}
-                await toggleWakeLock(true);
-
-                if (mode === 'slide') startSlideTimer();
-            };
-
-            // 4. 停止播放
-            const stopPlay = async () => {
-                isPlaying.value = false;
-                clearInterval(slideTimer);
-                try {
-                    if (document.fullscreenElement) await document.exitFullscreen();
-                } catch(e){}
-                await toggleWakeLock(false);
-            };
-
-            // 幻燈片計時器
-            const startSlideTimer = () => {
-                clearInterval(slideTimer);
-                if (isPaused.value) return;
-                slideTimer = setInterval(() => {
-                    currentPlayIndex.value = (currentPlayIndex.value + 1) % playList.value.length;
-                }, playConfig.value.interval);
-            };
-
-            // 監聽幻燈片設定變更
-            watch(() => playConfig.value.interval, () => {
-                if (playMode.value === 'slide' && isPlaying.value) startSlideTimer();
-            });
-
-            // 控制
-            const togglePause = () => {
-                isPaused.value = !isPaused.value;
-                if (playMode.value === 'slide') {
-                    if (isPaused.value) clearInterval(slideTimer);
-                    else startSlideTimer();
-                }
-            };
-            const nextPlay = () => {
-                currentPlayIndex.value = (currentPlayIndex.value + 1) % playList.value.length;
-                startSlideTimer(); // 重置計時
-            };
-            const prevPlay = () => {
-                currentPlayIndex.value = (currentPlayIndex.value - 1 + playList.value.length) % playList.value.length;
-                startSlideTimer();
-            };
+            const preparePlayList = () => { const list = [...currentFiles.value]; list.sort((a, b) => b.name.localeCompare(a.name)); return list.slice(0, 30); };
+            const toggleWakeLock = async (active) => { try { if (active && 'wakeLock' in navigator) wakeLockSentinel = await navigator.wakeLock.request('screen'); else if (!active && wakeLockSentinel) { await wakeLockSentinel.release(); wakeLockSentinel = null; } } catch (e) { console.warn('WakeLock error:', e); } };
             
-            // HUD 互動 (可擴充)
-            const onPlayerMouseMove = () => { /* CSS Hover handles visibility */ };
+            const startPlay = async (mode) => {
+                playList.value = preparePlayList(); if (playList.value.length === 0) return alert('無照片可播放');
+                playMode.value = mode; showPlayMenu.value = false; isPlaying.value = true; isPaused.value = false; currentPlayIndex.value = 0;
+                try { if (document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen(); } catch(e){}
+                await toggleWakeLock(true);
+                if (mode === 'slide') startSlideTimer();
+                onPlayerMouseMove(); // 初始化計時器
+            };
+            const stopPlay = async () => { isPlaying.value = false; clearInterval(slideTimer); try { if (document.fullscreenElement) await document.exitFullscreen(); } catch(e){} await toggleWakeLock(false); showHud.value = true; };
+            const startSlideTimer = () => { clearInterval(slideTimer); if (isPaused.value) return; slideTimer = setInterval(() => { currentPlayIndex.value = (currentPlayIndex.value + 1) % playList.value.length; }, playConfig.value.interval); };
+            watch(() => playConfig.value.interval, () => { if (playMode.value === 'slide' && isPlaying.value) startSlideTimer(); });
+            const togglePause = () => { isPaused.value = !isPaused.value; if (playMode.value === 'slide') { if (isPaused.value) clearInterval(slideTimer); else startSlideTimer(); } };
+            const nextPlay = () => { currentPlayIndex.value = (currentPlayIndex.value + 1) % playList.value.length; startSlideTimer(); };
+            const prevPlay = () => { currentPlayIndex.value = (currentPlayIndex.value - 1 + playList.value.length) % playList.value.length; startSlideTimer(); };
 
-            // --- State (Original) ---
+            // HUD Auto Hide Logic
+            const onPlayerMouseMove = () => {
+                showHud.value = true;
+                clearTimeout(hudTimeout);
+                // 3秒無動作自動隱藏
+                hudTimeout = setTimeout(() => {
+                    if (isPlaying.value) showHud.value = false;
+                }, 3000);
+            };
+
+            // Main State
             const loading = ref(true);
             const error = ref(null);
             const inputDeploymentId = ref('');
@@ -510,13 +427,7 @@
             const currentPhotoIndex = ref(0);
             const isDrawingMode = ref(false);
             const penColor = ref('#ef4444');
-            const colorPalette = [
-                { hex: '#ef4444', name: 'Red', bg: 'bg-red-500' },
-                { hex: '#eab308', name: 'Yellow', bg: 'bg-yellow-500' },
-                { hex: '#22c55e', name: 'Green', bg: 'bg-green-500' },
-                { hex: '#3b82f6', name: 'Blue', bg: 'bg-blue-500' },
-                { hex: '#ffffff', name: 'White', bg: 'bg-white' },
-            ];
+            const colorPalette = [{ hex: '#ef4444', name: 'Red', bg: 'bg-red-500' }, { hex: '#eab308', name: 'Yellow', bg: 'bg-yellow-500' }, { hex: '#22c55e', name: 'Green', bg: 'bg-green-500' }, { hex: '#3b82f6', name: 'Blue', bg: 'bg-blue-500' }, { hex: '#ffffff', name: 'White', bg: 'bg-white' }];
             const drawCanvas = ref(null);
             const ctx = ref(null);
             const isPainting = ref(false);
@@ -524,71 +435,17 @@
             const currentFolders = computed(() => currentNode.value?.children?.filter(c => c.type === 'folder') || []);
             const currentFiles = computed(() => currentNode.value?.children?.filter(c => c.type === 'file') || []);
             const currentPhoto = computed(() => currentFiles.value[currentPhotoIndex.value] || {});
-
-            async function sha256(message) {
-                const msgBuffer = new TextEncoder().encode(message);
-                const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-                return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
-            }
+            async function sha256(message) { const msgBuffer = new TextEncoder().encode(message); const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer); return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join(''); }
             const getProxyUrl = (u) => `/api/proxy?url=${encodeURIComponent(u)}`;
-
-            // --- Portal Logic ---
-            const checkPortal = async () => {
-                const params = new URLSearchParams(window.location.search);
-                if (params.get('portal') === '1') {
-                    isPortalMode.value = true;
-                    try {
-                        const res = await fetch(`/api/albums?id=_MASTER_INDEX`);
-                        if(res.ok) {
-                            const data = await res.json();
-                            masterHash.value = data.sys.password;
-                            units.value = data.units || [];
-                        } else { alert("Master Index Not Found"); }
-                    } catch(e) { console.error("Portal Load Error", e); }
-                }
-            };
-            const verifyPortal = async () => {
-                const inputHash = await sha256(portalInput.value);
-                if (inputHash === masterHash.value) { portalAuth.value = true; portalError.value = false; } else { portalError.value = true; }
-            };
+            const checkPortal = async () => { const params = new URLSearchParams(window.location.search); if (params.get('portal') === '1') { isPortalMode.value = true; try { const res = await fetch(`/api/albums?id=_MASTER_INDEX`); if(res.ok) { const data = await res.json(); masterHash.value = data.sys.password; units.value = data.units || []; } else { alert("Master Index Not Found"); } } catch(e) { console.error("Portal Error", e); } } };
+            const verifyPortal = async () => { const inputHash = await sha256(portalInput.value); if (inputHash === masterHash.value) { portalAuth.value = true; portalError.value = false; } else { portalError.value = true; } };
             const switchUnit = (uuid) => { window.location.href = `?id=${uuid}`; };
             const exitPortal = () => { window.location.href = window.location.pathname; };
-            const fetchData = async (id) => {
-                try {
-                    const res = await fetch(`/api/albums?id=${id}`);
-                    if (!res.ok) throw new Error('讀取失敗');
-                    const data = await res.json();
-                    if (data.error) throw new Error(data.error);
-                    sysInfo.value = data.sys; albums.value = data.albums;
-                    if (sysInfo.value.password) triggerAuth('global');
-                } catch (err) { error.value = err.message; } finally { loading.value = false; }
-            };
-            const enterFolder = (folder) => {
-                if (folder.pwd && folder.password) triggerAuth('folder', folder);
-                else actuallyEnterFolder(folder);
-            };
-            const actuallyEnterFolder = (folder) => {
-                currentNode.value = folder;
-                breadcrumbs.value.push({ id: folder.id, name: folder.name, node: folder });
-                viewMode.value = 'explorer';
-            };
-            const triggerAuth = (type, target = null) => {
-                auth.value = { required: true, type, target, input: '', error: false, verifying: false };
-                nextTick(() => { document.querySelector('input[type="password"]')?.focus(); });
-            };
-            const verifyPassword = async () => {
-                auth.value.verifying = true;
-                const input = String(auth.value.input).trim();
-                let hashedInput = '';
-                if(input) hashedInput = await sha256(input);
-                let correctHash = (auth.value.type === 'global') ? sysInfo.value.password : auth.value.target.password;
-                if (hashedInput === (correctHash || '')) {
-                    const target = auth.value.target;
-                    auth.value.required = false; 
-                    if (auth.value.type === 'folder' && target) actuallyEnterFolder(target);
-                } else { auth.value.error = true; auth.value.input = ''; }
-                auth.value.verifying = false;
-            };
+            const fetchData = async (id) => { try { const res = await fetch(`/api/albums?id=${id}`); if (!res.ok) throw new Error('讀取失敗'); const data = await res.json(); if (data.error) throw new Error(data.error); sysInfo.value = data.sys; albums.value = data.albums; if (sysInfo.value.password) triggerAuth('global'); } catch (err) { error.value = err.message; } finally { loading.value = false; } };
+            const enterFolder = (folder) => { if (folder.pwd && folder.password) triggerAuth('folder', folder); else actuallyEnterFolder(folder); };
+            const actuallyEnterFolder = (folder) => { currentNode.value = folder; breadcrumbs.value.push({ id: folder.id, name: folder.name, node: folder }); viewMode.value = 'explorer'; };
+            const triggerAuth = (type, target = null) => { auth.value = { required: true, type, target, input: '', error: false, verifying: false }; nextTick(() => { document.querySelector('input[type="password"]')?.focus(); }); };
+            const verifyPassword = async () => { auth.value.verifying = true; const input = String(auth.value.input).trim(); let hashedInput = ''; if(input) hashedInput = await sha256(input); let correctHash = (auth.value.type === 'global') ? sysInfo.value.password : auth.value.target.password; if (hashedInput === (correctHash || '')) { const target = auth.value.target; auth.value.required = false; if (auth.value.type === 'folder' && target) actuallyEnterFolder(target); } else { auth.value.error = true; auth.value.input = ''; } auth.value.verifying = false; };
             const cancelAuth = () => { auth.value.required = false; };
             const openById = () => { if(inputDeploymentId.value) window.location.href = `?id=${inputDeploymentId.value.trim()}`; };
             const goHomeRoot = () => { window.location.href = window.location.pathname; };
@@ -600,23 +457,13 @@
             const nextPhoto = () => { currentPhotoIndex.value = (currentPhotoIndex.value + 1) % currentFiles.value.length; clearCanvas(); };
             const prevPhoto = () => { currentPhotoIndex.value = (currentPhotoIndex.value - 1 + currentFiles.value.length) % currentFiles.value.length; clearCanvas(); };
             const toggleDrawing = async () => { isDrawingMode.value = !isDrawingMode.value; if(isDrawingMode.value) { await nextTick(); initCanvas(); } };
-            const initCanvas = () => { 
-                const c = drawCanvas.value; if(!c) return; 
-                const rect = c.getBoundingClientRect();
-                c.width = rect.width; c.height = rect.height; 
-                ctx.value = c.getContext('2d'); ctx.value.lineCap='round'; ctx.value.lineJoin='round'; ctx.value.lineWidth=5; 
-            };
+            const initCanvas = () => { const c = drawCanvas.value; if(!c) return; const rect = c.getBoundingClientRect(); c.width = rect.width; c.height = rect.height; ctx.value = c.getContext('2d'); ctx.value.lineCap='round'; ctx.value.lineJoin='round'; ctx.value.lineWidth=5; };
             const getPos = (e) => { const c = drawCanvas.value; if(!c) return {x:0, y:0}; const clientX = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX; const clientY = (e.touches && e.touches[0]) ? e.touches[0].clientY : e.clientY; const rect = c.getBoundingClientRect(); return { x: clientX - rect.left, y: clientY - rect.top }; };
             const startDraw = (e) => { if(!isDrawingMode.value) return; isPainting.value = true; const {x,y} = getPos(e); ctx.value.strokeStyle = penColor.value; ctx.value.beginPath(); ctx.value.moveTo(x,y); };
             const drawing = (e) => { if(!isPainting.value) return; e.preventDefault(); const {x,y} = getPos(e); ctx.value.lineTo(x,y); ctx.value.stroke(); };
             const stopDraw = () => { isPainting.value = false; if(ctx.value) ctx.value.closePath(); };
             const clearCanvas = () => { if(ctx.value) ctx.value.clearRect(0,0,drawCanvas.value.width, drawCanvas.value.height); };
-            const downloadCurrentFolder = async () => {
-                const zip = new JSZip(); const files = currentFiles.value;
-                if(files.length===0) return alert('無照片');
-                alert(`打包中...`);
-                try { await Promise.all(files.map(async (p) => { try { const res = await fetch(getProxyUrl(p.url)); if(res.ok) zip.file(p.name, await res.blob()); } catch(e){} })); saveAs(await zip.generateAsync({type:"blob"}), `${currentNode.value.name}.zip`); } catch(e) { alert('下載失敗'); }
-            };
+            const downloadCurrentFolder = async () => { const zip = new JSZip(); const files = currentFiles.value; if(files.length===0) return alert('無照片'); alert(`打包中...`); try { await Promise.all(files.map(async (p) => { try { const res = await fetch(getProxyUrl(p.url)); if(res.ok) zip.file(p.name, await res.blob()); } catch(e){} })); saveAs(await zip.generateAsync({type:"blob"}), `${currentNode.value.name}.zip`); } catch(e) { alert('下載失敗'); } };
 
             onMounted(async () => {
                 initTheme(); await checkPortal();
@@ -626,9 +473,7 @@
                     await fetchData(id); 
                 } else { loading.value = false; }
                 window.addEventListener('keydown', (e) => {
-                    if (showLightbox.value) {
-                        if (e.key === 'ArrowRight') nextPhoto(); if (e.key === 'ArrowLeft') prevPhoto(); if (e.key === 'Escape') closeLightbox();
-                    }
+                    if (showLightbox.value) { if (e.key === 'ArrowRight') nextPhoto(); if (e.key === 'ArrowLeft') prevPhoto(); if (e.key === 'Escape') closeLightbox(); }
                     if (isPlaying.value && e.key === 'Escape') stopPlay();
                 });
                 window.addEventListener('resize', () => { if (isDrawingMode.value) initCanvas(); });
@@ -640,10 +485,9 @@
                 showLightbox, currentPhotoIndex, openLightbox, closeLightbox, nextPhoto, prevPhoto,
                 isDrawingMode, penColor, colorPalette, drawCanvas, toggleDrawing, startDraw, drawing, stopDraw, clearCanvas,
                 getProxyUrl, downloadCurrentFolder, auth, verifyPassword, cancelAuth, penCursorUrl,
-                isPortalMode, portalAuth, portalInput, portalError, units, verifyPortal, switchUnit, exitPortal,
-                themes, currentTheme, showThemeMenu, setTheme,
+                isPortalMode, portalAuth, portalInput, portalError, units, verifyPortal, switchUnit, exitPortal, themes, currentTheme, showThemeMenu, setTheme,
                 // Player
-                isPlaying, playMode, showPlayMenu, playList, currentPlayIndex, playConfig, isPaused, startPlay, stopPlay, togglePause, nextPlay, prevPlay, onPlayerMouseMove
+                isPlaying, playMode, showPlayMenu, playList, currentPlayIndex, playConfig, isPaused, startPlay, stopPlay, togglePause, nextPlay, prevPlay, onPlayerMouseMove, showHud
             };
         }
     }).mount('#app');
