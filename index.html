@@ -4,61 +4,139 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Qu相簿企業版</title>
+    
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        theme: {
+                            bg: 'var(--theme-bg)',           // 頁面背景
+                            card: 'var(--theme-card)',       // 卡片/區塊背景
+                            text: 'var(--theme-text)',       // 主要文字
+                            sub: 'var(--theme-sub)',         // 次要文字 (灰色)
+                            border: 'var(--theme-border)',   // 邊框
+                            primary: 'var(--theme-primary)', // 主色調 (按鈕/Icon)
+                            hover: 'var(--theme-hover)',     // 主色調 Hover
+                        }
+                    }
+                }
+            }
+        }
+    </script>
     
     <style>
         [v-cloak] { display: none; }
-        /* 畫筆游標 (SVG) */
+        
+        /* --- 3. 定義 5 種風格的 CSS 變數 --- */
+        :root {
+            /* 預設 (簡約白) */
+            --theme-bg: #f9fafb;      /* gray-50 */
+            --theme-card: #ffffff;    /* white */
+            --theme-text: #1f2937;    /* gray-800 */
+            --theme-sub: #6b7280;     /* gray-500 */
+            --theme-border: #e5e7eb;  /* gray-200 */
+            --theme-primary: #2563eb; /* blue-600 */
+            --theme-hover: #1d4ed8;   /* blue-700 */
+        }
+
+        /* 🌙 暗黑模式 */
+        .theme-dark {
+            --theme-bg: #111827;      /* gray-900 */
+            --theme-card: #1f2937;    /* gray-800 */
+            --theme-text: #f3f4f6;    /* gray-100 */
+            --theme-sub: #9ca3af;     /* gray-400 */
+            --theme-border: #374151;  /* gray-700 */
+            --theme-primary: #60a5fa; /* blue-400 */
+            --theme-hover: #3b82f6;   /* blue-500 */
+        }
+
+        /* 🧧 喜氣紅 (尾牙/春節) */
+        .theme-festive {
+            --theme-bg: #fff1f2;      /* rose-50 */
+            --theme-card: #ffffff;
+            --theme-text: #881337;    /* rose-900 */
+            --theme-sub: #be123c;     /* rose-700 */
+            --theme-border: #fda4af;  /* rose-300 */
+            --theme-primary: #e11d48; /* rose-600 */
+            --theme-hover: #be123c;   /* rose-700 */
+        }
+
+        /* 🌿 護眼綠 (踏青/舒適) */
+        .theme-nature {
+            --theme-bg: #f0fdf4;      /* green-50 */
+            --theme-card: #ffffff;
+            --theme-text: #14532d;    /* green-900 */
+            --theme-sub: #15803d;     /* green-700 */
+            --theme-border: #bbf7d0;  /* green-200 */
+            --theme-primary: #16a34a; /* green-600 */
+            --theme-hover: #15803d;   /* green-700 */
+        }
+
+        /* 🌆 沉穩金 (高端/晚宴) */
+        .theme-luxury {
+            --theme-bg: #0f172a;      /* slate-900 */
+            --theme-card: #1e293b;    /* slate-800 */
+            --theme-text: #fbbf24;    /* amber-400 */
+            --theme-sub: #94a3b8;     /* slate-400 */
+            --theme-border: #451a03;  /* amber-950 */
+            --theme-primary: #d97706; /* amber-600 */
+            --theme-hover: #b45309;   /* amber-700 */
+        }
+
+        /* 通用樣式 */
+        body { background-color: var(--theme-bg); color: var(--theme-text); transition: background-color 0.3s, color 0.3s; }
         .cursor-pen { cursor: none; } 
         .watermark { position: fixed; bottom: 10px; right: 10px; font-size: 0.7rem; color: rgba(0,0,0,0.2); pointer-events: none; z-index: 9999; }
         .folder-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
-        /* 動畫效果 */
         .fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
         .fade-enter-from, .fade-leave-to { opacity: 0; }
         .animate-fade-in { animation: fadeIn 0.5s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        /* 隱藏滾動條 */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         .custom-scroll::-webkit-scrollbar { width: 6px; }
         .custom-scroll::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.2); border-radius: 3px; }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800 font-sans antialiased">
+<body class="font-sans antialiased" :class="currentThemeClass">
 
 <div id="app" v-cloak>
-    <div class="watermark">Qu Album v4.7</div>
+    <div class="watermark text-theme-sub">Qu Album v5.0</div>
 
-    <div v-if="isPortalMode" class="fixed inset-0 z-[200] bg-gray-100 flex flex-col items-center justify-center p-4">
-        <div class="bg-white p-8 rounded-2xl shadow-xl max-w-2xl w-full border border-gray-200">
-            <h1 class="text-3xl font-bold text-gray-800 mb-6 flex items-center justify-center">
-                <i class="fa-solid fa-server text-blue-600 mr-3"></i> 企業相簿總管
+    <div v-if="isPortalMode" class="fixed inset-0 z-[200] bg-theme-bg flex flex-col items-center justify-center p-4">
+        <div class="bg-theme-card p-8 rounded-2xl shadow-xl max-w-2xl w-full border border-theme-border">
+            <h1 class="text-3xl font-bold text-theme-text mb-6 flex items-center justify-center">
+                <i class="fa-solid fa-server text-theme-primary mr-3"></i> 企業相簿總管
             </h1>
             
             <div v-if="!portalAuth" class="flex flex-col space-y-4">
-                <p class="text-center text-gray-500 mb-2">請輸入 IT 管理密碼以存取索引</p>
-                <input type="password" v-model="portalInput" placeholder="Password" class="border p-3 rounded text-center text-lg focus:ring-2 focus:ring-blue-500 outline-none" @keyup.enter="verifyPortal">
-                <button @click="verifyPortal" class="bg-gray-800 text-white py-3 rounded hover:bg-black transition font-bold shadow-md">驗證身份</button>
+                <p class="text-center text-theme-sub mb-2">請輸入 IT 管理密碼以存取索引</p>
+                <input type="password" v-model="portalInput" placeholder="Password" class="border border-theme-border bg-theme-bg text-theme-text p-3 rounded text-center text-lg focus:ring-2 focus:ring-theme-primary outline-none" @keyup.enter="verifyPortal">
+                <button @click="verifyPortal" class="bg-theme-primary text-white py-3 rounded hover:bg-theme-hover transition font-bold shadow-md">驗證身份</button>
                 <p v-if="portalError" class="text-red-500 text-center animate-pulse"><i class="fa-solid fa-circle-exclamation mr-1"></i> 密碼錯誤</p>
             </div>
 
             <div v-else>
-                <div class="flex justify-between items-center mb-4 border-b pb-2">
-                    <span class="text-gray-500 text-sm">已索引單位: {{ units.length }}</span>
+                <div class="flex justify-between items-center mb-4 border-b border-theme-border pb-2">
+                    <span class="text-theme-sub text-sm">已索引單位: {{ units.length }}</span>
                     <button @click="exitPortal" class="text-sm text-red-500 hover:underline">登出</button>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto pr-2 custom-scroll">
                     <div v-for="unit in units" :key="unit.uuid" @click="switchUnit(unit.uuid)" 
-                         class="p-4 border rounded-lg hover:bg-blue-50 hover:border-blue-300 cursor-pointer transition flex justify-between items-center group bg-gray-50">
+                         class="p-4 border border-theme-border bg-theme-bg rounded-lg hover:border-theme-primary cursor-pointer transition flex justify-between items-center group">
                         <div>
-                            <div class="font-bold text-lg text-gray-800">{{ unit.name }}</div>
-                            <div class="text-sm text-gray-500"><i class="fa-solid fa-user-tag mr-1"></i> {{ unit.manager }}</div>
+                            <div class="font-bold text-lg text-theme-text">{{ unit.name }}</div>
+                            <div class="text-sm text-theme-sub"><i class="fa-solid fa-user-tag mr-1"></i> {{ unit.manager }}</div>
                         </div>
-                        <i class="fa-solid fa-arrow-right-to-bracket text-gray-300 group-hover:text-blue-500 text-xl"></i>
+                        <i class="fa-solid fa-arrow-right-to-bracket text-theme-sub group-hover:text-theme-primary text-xl"></i>
                     </div>
                 </div>
             </div>
@@ -66,60 +144,75 @@
     </div>
 
     <template v-else>
-        <div v-if="loading" class="fixed inset-0 flex flex-col items-center justify-center bg-white z-50">
-            <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500 mb-4"></div>
-            <p class="text-gray-500 animate-pulse">讀取相簿櫃中...</p>
+        <div v-if="loading" class="fixed inset-0 flex flex-col items-center justify-center bg-theme-bg z-50">
+            <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-theme-primary mb-4"></div>
+            <p class="text-theme-sub animate-pulse">讀取相簿櫃中...</p>
         </div>
 
-        <div v-else-if="error" class="fixed inset-0 flex flex-col items-center justify-center bg-gray-50 p-4 text-center z-40">
-            <div v-if="error === 'HOME'" class="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full border border-gray-200">
-                <div class="mb-6 flex justify-center"><div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center"><i class="fa-solid fa-camera-retro text-4xl text-blue-600"></i></div></div>
-                <h2 class="text-2xl font-bold text-gray-800 mb-2">Qu相簿入口</h2>
+        <div v-else-if="error" class="fixed inset-0 flex flex-col items-center justify-center bg-theme-bg p-4 text-center z-40">
+            <div v-if="error === 'HOME'" class="bg-theme-card p-8 rounded-2xl shadow-xl max-w-md w-full border border-theme-border">
+                <div class="mb-6 flex justify-center"><div class="w-20 h-20 bg-theme-bg border border-theme-border rounded-full flex items-center justify-center"><i class="fa-solid fa-camera-retro text-4xl text-theme-primary"></i></div></div>
+                <h2 class="text-2xl font-bold text-theme-text mb-2">Qu相簿入口</h2>
                 <div class="flex flex-col space-y-3 mt-6">
-                    <input type="text" v-model="inputDeploymentId" placeholder="輸入 UUID" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none text-center font-mono text-lg">
-                    <button @click="openById" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-bold transition shadow-md hover:shadow-lg">進入</button>
+                    <input type="text" v-model="inputDeploymentId" placeholder="輸入 UUID" class="w-full border border-theme-border bg-theme-bg text-theme-text rounded-lg px-4 py-3 focus:ring-2 focus:ring-theme-primary outline-none text-center font-mono text-lg">
+                    <button @click="openById" class="w-full bg-theme-primary hover:bg-theme-hover text-white px-6 py-3 rounded-lg font-bold transition shadow-md hover:shadow-lg">進入</button>
                 </div>
-                <p class="mt-6 text-xs text-gray-400">請向管理員索取相簿 ID</p>
+                <p class="mt-6 text-xs text-theme-sub">請向管理員索取相簿 ID</p>
             </div>
             <div v-else>
                 <i class="fa-solid fa-triangle-exclamation text-6xl text-red-400 mb-4"></i>
-                <h2 class="text-2xl font-bold text-gray-700 mb-2">存取拒絕</h2>
-                <p class="text-gray-500 max-w-md bg-white p-4 rounded border border-red-100 shadow-sm">{{ error }}</p>
-                <button @click="goHomeRoot" class="mt-6 text-blue-600 hover:underline">回到首頁</button>
+                <h2 class="text-2xl font-bold text-theme-text mb-2">存取拒絕</h2>
+                <p class="text-theme-sub max-w-md bg-theme-card p-4 rounded border border-red-100 shadow-sm">{{ error }}</p>
+                <button @click="goHomeRoot" class="mt-6 text-theme-primary hover:underline">回到首頁</button>
             </div>
         </div>
 
         <div v-else class="min-h-screen flex flex-col">
-            <nav class="bg-white shadow sticky top-0 z-30">
+            <nav class="bg-theme-card shadow sticky top-0 z-30 transition-colors duration-300">
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div class="flex justify-between h-16">
                         <div class="flex items-center cursor-pointer" @click="goHome">
-                            <i class="fa-solid fa-camera-retro text-blue-600 text-2xl mr-2"></i>
-                            <span class="font-bold text-xl tracking-tight">{{ sysInfo.title || 'Qu Album' }}</span>
+                            <i class="fa-solid fa-camera-retro text-theme-primary text-2xl mr-2"></i>
+                            <span class="font-bold text-xl tracking-tight text-theme-text">{{ sysInfo.title || 'Qu Album' }}</span>
                         </div>
                         <div class="flex items-center space-x-4">
-                            <button @click="copyShareLink" class="text-gray-500 hover:text-blue-600 transition" title="複製連結"><i class="fa-solid fa-share-nodes text-lg"></i></button>
+                            <div class="relative">
+                                <button @click="showThemeMenu = !showThemeMenu" class="text-theme-sub hover:text-theme-primary transition p-2 rounded-full hover:bg-theme-bg" title="切換風格">
+                                    <i class="fa-solid fa-palette text-lg"></i>
+                                </button>
+                                <div v-if="showThemeMenu" class="absolute right-0 mt-2 w-48 bg-theme-card rounded-lg shadow-xl border border-theme-border py-1 z-50 animate-fade-in">
+                                    <div v-for="theme in themes" :key="theme.id" 
+                                         @click="setTheme(theme.id)"
+                                         class="px-4 py-2 hover:bg-theme-bg cursor-pointer flex items-center justify-between group">
+                                        <span class="text-theme-text text-sm group-hover:text-theme-primary">{{ theme.name }}</span>
+                                        <i v-if="currentTheme === theme.id" class="fa-solid fa-check text-theme-primary text-xs"></i>
+                                    </div>
+                                </div>
+                                <div v-if="showThemeMenu" @click="showThemeMenu = false" class="fixed inset-0 z-40"></div>
+                            </div>
+
+                            <button @click="copyShareLink" class="text-theme-sub hover:text-theme-primary transition p-2" title="複製連結"><i class="fa-solid fa-share-nodes text-lg"></i></button>
                         </div>
                     </div>
                 </div>
             </nav>
 
-            <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full">
+            <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full transition-colors duration-300">
                 <div v-if="breadcrumbs.length > 0" class="flex items-center space-x-2 text-sm mb-6 overflow-x-auto whitespace-nowrap pb-2 no-scrollbar">
-                    <button @click="goHome" class="text-gray-500 hover:text-blue-600 flex items-center px-2 py-1 rounded hover:bg-gray-100"><i class="fa-solid fa-house"></i></button>
+                    <button @click="goHome" class="text-theme-sub hover:text-theme-primary flex items-center px-2 py-1 rounded hover:bg-theme-bg"><i class="fa-solid fa-house"></i></button>
                     <template v-for="(crumb, index) in breadcrumbs" :key="crumb.id">
-                        <span class="text-gray-300">/</span>
-                        <button @click="navigateBreadcrumb(index)" :class="index === breadcrumbs.length - 1 ? 'font-bold text-gray-800' : 'text-gray-500 hover:text-blue-600'" class="px-2 py-1 rounded hover:bg-gray-100 transition">{{ crumb.name }}</button>
+                        <span class="text-theme-border">/</span>
+                        <button @click="navigateBreadcrumb(index)" :class="index === breadcrumbs.length - 1 ? 'font-bold text-theme-text' : 'text-theme-sub hover:text-theme-primary'" class="px-2 py-1 rounded hover:bg-theme-bg transition">{{ crumb.name }}</button>
                     </template>
                 </div>
 
                 <div class="animate-fade-in">
                     <div v-if="viewMode === 'bookshelf'">
-                        <h2 class="text-2xl font-bold mb-4 border-l-4 border-blue-500 pl-3">相簿列表</h2>
+                        <h2 class="text-2xl font-bold mb-4 border-l-4 border-theme-primary pl-3 text-theme-text">相簿列表</h2>
                         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                             <div v-for="album in albums" :key="album.id" @click="enterFolder(album)"
-                                 class="group bg-white rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden border border-gray-100 transform hover:-translate-y-1">
-                                <div class="aspect-w-4 aspect-h-3 bg-gray-200 relative overflow-hidden">
+                                 class="group bg-theme-card rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden border border-theme-border transform hover:-translate-y-1">
+                                <div class="aspect-w-4 aspect-h-3 bg-theme-bg relative overflow-hidden">
                                     <img :src="album.cover || 'https://via.placeholder.com/400x300?text=No+Cover'" class="object-cover w-full h-full group-hover:scale-110 transition-transform duration-700">
                                     <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all"></div>
                                     <div v-if="album.pwd" class="absolute top-2 right-2 bg-black/70 text-white px-3 py-1 rounded-full text-xs font-bold border border-white/20">
@@ -127,8 +220,8 @@
                                     </div>
                                 </div>
                                 <div class="p-4">
-                                    <h3 class="font-bold text-lg text-gray-800 truncate group-hover:text-blue-600">{{ album.name }}</h3>
-                                    <div class="flex justify-between items-center mt-2 text-sm text-gray-500">
+                                    <h3 class="font-bold text-lg text-theme-text truncate group-hover:text-theme-primary">{{ album.name }}</h3>
+                                    <div class="flex justify-between items-center mt-2 text-sm text-theme-sub">
                                         <span><i class="fa-regular fa-folder-open mr-1"></i> 進入相簿</span>
                                         <i class="fa-solid fa-arrow-right"></i>
                                     </div>
@@ -139,29 +232,29 @@
 
                     <div v-else>
                         <div v-if="currentFolders.length > 0" class="mb-8">
-                            <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">資料夾</h3>
+                            <h3 class="text-sm font-bold text-theme-sub uppercase tracking-wider mb-3">資料夾</h3>
                             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
                                 <div v-for="folder in currentFolders" :key="folder.id" @click="enterFolder(folder)"
-                                     class="folder-card bg-white p-4 rounded-xl border border-gray-200 cursor-pointer transition flex flex-col items-center justify-center text-center h-32 relative group">
+                                     class="folder-card bg-theme-card p-4 rounded-xl border border-theme-border cursor-pointer transition flex flex-col items-center justify-center text-center h-32 relative group">
                                     <div class="relative">
                                          <i class="fa-solid fa-folder text-4xl text-yellow-400 mb-2 group-hover:text-yellow-500 transition"></i>
-                                         <i v-if="folder.pwd" class="fa-solid fa-lock text-xs absolute -right-1 -bottom-0 text-red-500 bg-white rounded-full p-0.5 border border-red-100"></i>
+                                         <i v-if="folder.pwd" class="fa-solid fa-lock text-xs absolute -right-1 -bottom-0 text-red-500 bg-theme-card rounded-full p-0.5 border border-red-100"></i>
                                     </div>
-                                    <span class="text-sm font-medium text-gray-700 line-clamp-2">{{ folder.name }}</span>
+                                    <span class="text-sm font-medium text-theme-text line-clamp-2">{{ folder.name }}</span>
                                 </div>
                             </div>
                         </div>
 
                         <div v-if="currentFiles.length > 0">
                             <div class="flex justify-between items-end mb-3">
-                                <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider">照片 ({{ currentFiles.length }})</h3>
-                                <button @click="downloadCurrentFolder" class="text-xs bg-gray-800 text-white px-3 py-1.5 rounded-full hover:bg-gray-700 transition flex items-center shadow-md">
+                                <h3 class="text-sm font-bold text-theme-sub uppercase tracking-wider">照片 ({{ currentFiles.length }})</h3>
+                                <button @click="downloadCurrentFolder" class="text-xs bg-theme-text text-theme-bg px-3 py-1.5 rounded-full hover:opacity-80 transition flex items-center shadow-md border border-theme-border">
                                     <i class="fa-solid fa-download mr-1"></i> 打包下載本頁照片
                                 </button>
                             </div>
                             <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-4">
                                 <div v-for="(file, index) in currentFiles" :key="file.id" @click="openLightbox(index)"
-                                     class="relative aspect-square bg-gray-100 rounded-lg overflow-hidden cursor-pointer group shadow-sm hover:shadow-md transition">
+                                     class="relative aspect-square bg-theme-bg rounded-lg overflow-hidden cursor-pointer group shadow-sm hover:shadow-md transition border border-theme-border">
                                     <img :src="file.cover" loading="lazy" class="w-full h-full object-cover transition duration-500 group-hover:scale-110">
                                     <span v-if="file.mime === 'v'" class="absolute top-2 right-2 text-white drop-shadow-md"><i class="fa-solid fa-video"></i></span>
                                 </div>
@@ -169,8 +262,8 @@
                         </div>
 
                         <div v-if="currentFolders.length === 0 && currentFiles.length === 0" class="text-center py-20 opacity-50">
-                            <i class="fa-regular fa-folder-open text-6xl mb-4 text-gray-300"></i>
-                            <p>此資料夾是空的</p>
+                            <i class="fa-regular fa-folder-open text-6xl mb-4 text-theme-sub"></i>
+                            <p class="text-theme-sub">此資料夾是空的</p>
                         </div>
                     </div>
                 </div>
@@ -178,28 +271,28 @@
         </div>
 
         <transition name="fade">
-            <div v-if="auth.required" class="fixed inset-0 z-[60] bg-gray-900/90 backdrop-blur-sm flex items-center justify-center p-4">
-                <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full text-center transform transition-all scale-100 border border-gray-100">
+            <div v-if="auth.required" class="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+                <div class="bg-theme-card rounded-2xl shadow-2xl p-8 max-w-sm w-full text-center transform transition-all scale-100 border border-theme-border">
                     <div class="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
                         <i class="fa-solid fa-lock text-2xl"></i>
                     </div>
-                    <h3 class="text-xl font-bold text-gray-800 mb-2">
+                    <h3 class="text-xl font-bold text-theme-text mb-2">
                         {{ auth.type === 'global' ? '全站鎖定' : '相簿上鎖' }}
                     </h3>
-                    <p class="text-gray-500 text-sm mb-6">
+                    <p class="text-theme-sub text-sm mb-6">
                         {{ auth.type === 'global' ? '請輸入全站存取密碼' : '此資料夾受密碼保護' }}
                     </p>
                     <form @submit.prevent="verifyPassword">
                         <input type="password" v-model="auth.input" ref="pwdInput" placeholder="輸入密碼..." 
-                               class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none text-center mb-4 tracking-widest text-lg">
-                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition shadow-md">
+                               class="w-full border border-theme-border bg-theme-bg text-theme-text rounded-lg px-4 py-3 focus:ring-2 focus:ring-theme-primary outline-none text-center mb-4 tracking-widest text-lg">
+                        <button type="submit" class="w-full bg-theme-primary hover:bg-theme-hover text-white font-bold py-3 rounded-lg transition shadow-md">
                             {{ auth.verifying ? '驗證中...' : '解鎖' }}
                         </button>
                         <p v-if="auth.error" class="text-red-500 text-xs mt-3 animate-pulse font-bold">
                             <i class="fa-solid fa-circle-exclamation mr-1"></i> 密碼錯誤
                         </p>
                     </form>
-                    <button v-if="auth.type === 'folder'" @click="cancelAuth" class="mt-4 text-gray-400 text-sm hover:text-gray-600 underline">取消</button>
+                    <button v-if="auth.type === 'folder'" @click="cancelAuth" class="mt-4 text-theme-sub text-sm hover:text-theme-text underline">取消</button>
                 </div>
             </div>
         </transition>
@@ -208,7 +301,7 @@
             <div class="flex justify-between items-center p-4 text-white bg-gradient-to-b from-black/80 to-transparent z-50">
                 <div class="flex items-center space-x-4">
                     <span class="font-bold font-mono">{{ currentPhotoIndex + 1 }} / {{ currentFiles.length }}</span>
-                    <button @click="toggleDrawing" :class="isDrawingMode ? 'bg-blue-600 border-transparent' : 'bg-gray-800 border-gray-600'" class="px-3 py-1.5 rounded-full text-sm border flex items-center transition transition-all"><i class="fa-solid fa-pen-nib mr-2"></i> 標記</button>
+                    <button @click="toggleDrawing" :class="isDrawingMode ? 'bg-theme-primary border-transparent text-white' : 'bg-gray-800 border-gray-600'" class="px-3 py-1.5 rounded-full text-sm border flex items-center transition transition-all"><i class="fa-solid fa-pen-nib mr-2"></i> 標記</button>
                     
                     <div v-if="isDrawingMode" class="flex space-x-2 animate-fade-in items-center pl-2 border-l border-gray-700">
                         <template v-for="color in colorPalette" :key="color.hex">
@@ -242,6 +335,39 @@
     const { createApp, ref, computed, onMounted, nextTick } = Vue;
     createApp({
         setup() {
+            // --- Theme Logic (New) ---
+            const themes = [
+                { id: 'default', name: '🏢 簡約白' },
+                { id: 'dark', name: '🌙 暗黑模式' },
+                { id: 'festive', name: '🧧 喜氣紅' },
+                { id: 'nature', name: '🌿 護眼綠' },
+                { id: 'luxury', name: '🌆 沉穩金' },
+            ];
+            const currentTheme = ref('default');
+            const showThemeMenu = ref(false);
+
+            // 計算當前的 Class 名稱
+            const currentThemeClass = computed(() => {
+                return currentTheme.value === 'default' ? '' : `theme-${currentTheme.value}`;
+            });
+
+            // 設定主題並存入 LocalStorage
+            const setTheme = (id) => {
+                currentTheme.value = id;
+                localStorage.setItem('qu-theme', id);
+                showThemeMenu.value = false;
+            };
+
+            // 初始化主題
+            const initTheme = () => {
+                const saved = localStorage.getItem('qu-theme');
+                if (saved && themes.some(t => t.id === saved)) {
+                    currentTheme.value = saved;
+                } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    currentTheme.value = 'dark'; // 自動偵測系統暗黑模式
+                }
+            };
+
             // --- State ---
             const loading = ref(true);
             const error = ref(null);
@@ -304,7 +430,7 @@
                         const res = await fetch(`/api/albums?id=_MASTER_INDEX`);
                         if(res.ok) {
                             const data = await res.json();
-                            masterHash.value = data.sys.password; // IT 密碼雜湊
+                            masterHash.value = data.sys.password;
                             units.value = data.units || [];
                         } else {
                             alert("Master Index Not Found (請確認 IT 總表已同步)");
@@ -355,7 +481,7 @@
                 viewMode.value = 'explorer';
             };
 
-            // --- Auth Logic (SHA-256) ---
+            // --- Auth Logic ---
             const triggerAuth = (type, target = null) => {
                 auth.value = { required: true, type, target, input: '', error: false, verifying: false };
                 nextTick(() => { document.querySelector('input[type="password"]')?.focus(); });
@@ -390,12 +516,13 @@
 
             // --- Lifecycle ---
             onMounted(async () => {
-                await checkPortal(); // 1. 檢查是否為入口模式
+                initTheme(); // 1. 初始化主題
+                await checkPortal(); // 2. 檢查入口模式
                 
                 if (!isPortalMode.value) {
                     const id = new URLSearchParams(window.location.search).get('id');
                     if (!id) { loading.value = false; error.value = "HOME"; return; }
-                    await fetchData(id); // 2. 不是入口模式，則讀取相簿
+                    await fetchData(id); 
                 } else {
                     loading.value = false; 
                 }
@@ -466,7 +593,9 @@
                 showLightbox, currentPhotoIndex, openLightbox, closeLightbox, nextPhoto, prevPhoto,
                 isDrawingMode, penColor, colorPalette, drawCanvas, toggleDrawing, startDraw, drawing, stopDraw, clearCanvas,
                 getProxyUrl, downloadCurrentFolder, auth, verifyPassword, cancelAuth, penCursorUrl,
-                isPortalMode, portalAuth, portalInput, portalError, units, verifyPortal, switchUnit, exitPortal
+                isPortalMode, portalAuth, portalInput, portalError, units, verifyPortal, switchUnit, exitPortal,
+                // Themes
+                themes, currentTheme, showThemeMenu, setTheme, currentThemeClass
             };
         }
     }).mount('#app');
