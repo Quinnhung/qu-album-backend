@@ -106,7 +106,7 @@
         .custom-scroll::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.2); border-radius: 3px; }
     </style>
 </head>
-<body class="font-sans antialiased" :class="currentThemeClass">
+<body class="font-sans antialiased transition-colors duration-300">
 
 <div id="app" v-cloak>
     <div class="watermark text-theme-sub">Qu Album v5.0</div>
@@ -332,10 +332,10 @@
 </div>
 
 <script>
-    const { createApp, ref, computed, onMounted, nextTick } = Vue;
+    const { createApp, ref, computed, onMounted, nextTick, watch } = Vue; // 🔥 加入 watch
     createApp({
         setup() {
-            // --- Theme Logic (New) ---
+            // --- Theme Logic (Fixed) ---
             const themes = [
                 { id: 'default', name: '🏢 簡約白' },
                 { id: 'dark', name: '🌙 暗黑模式' },
@@ -346,15 +346,25 @@
             const currentTheme = ref('default');
             const showThemeMenu = ref(false);
 
-            // 計算當前的 Class 名稱
-            const currentThemeClass = computed(() => {
-                return currentTheme.value === 'default' ? '' : `theme-${currentTheme.value}`;
+            // 🔥 修正核心：監聽主題變化，直接修改 body 的 class
+            const applyThemeToBody = (themeId) => {
+                // 移除所有可能的 theme class
+                themes.forEach(t => document.body.classList.remove(`theme-${t.id}`));
+                // 如果不是預設，就加上對應的 class
+                if (themeId !== 'default') {
+                    document.body.classList.add(`theme-${themeId}`);
+                }
+            };
+
+            // 監聽變數變化
+            watch(currentTheme, (newVal) => {
+                applyThemeToBody(newVal);
+                localStorage.setItem('qu-theme', newVal);
             });
 
-            // 設定主題並存入 LocalStorage
+            // 設定主題
             const setTheme = (id) => {
                 currentTheme.value = id;
-                localStorage.setItem('qu-theme', id);
                 showThemeMenu.value = false;
             };
 
@@ -364,8 +374,10 @@
                 if (saved && themes.some(t => t.id === saved)) {
                     currentTheme.value = saved;
                 } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                    currentTheme.value = 'dark'; // 自動偵測系統暗黑模式
+                    currentTheme.value = 'dark'; 
                 }
+                // 初始化時立即套用
+                applyThemeToBody(currentTheme.value);
             };
 
             // --- State ---
@@ -433,7 +445,7 @@
                             masterHash.value = data.sys.password;
                             units.value = data.units || [];
                         } else {
-                            alert("Master Index Not Found (請確認 IT 總表已同步)");
+                            alert("Master Index Not Found");
                         }
                     } catch(e) { console.error("Portal Load Error", e); }
                 }
@@ -517,7 +529,7 @@
             // --- Lifecycle ---
             onMounted(async () => {
                 initTheme(); // 1. 初始化主題
-                await checkPortal(); // 2. 檢查入口模式
+                await checkPortal(); 
                 
                 if (!isPortalMode.value) {
                     const id = new URLSearchParams(window.location.search).get('id');
@@ -595,7 +607,7 @@
                 getProxyUrl, downloadCurrentFolder, auth, verifyPassword, cancelAuth, penCursorUrl,
                 isPortalMode, portalAuth, portalInput, portalError, units, verifyPortal, switchUnit, exitPortal,
                 // Themes
-                themes, currentTheme, showThemeMenu, setTheme, currentThemeClass
+                themes, currentTheme, showThemeMenu, setTheme
             };
         }
     }).mount('#app');
