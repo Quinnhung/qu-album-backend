@@ -18,14 +18,26 @@
                 extend: {
                     colors: {
                         theme: {
-                            bg: 'var(--theme-bg)',           // 頁面背景
-                            card: 'var(--theme-card)',       // 卡片/區塊背景
-                            text: 'var(--theme-text)',       // 主要文字
-                            sub: 'var(--theme-sub)',         // 次要文字 (灰色)
-                            border: 'var(--theme-border)',   // 邊框
-                            primary: 'var(--theme-primary)', // 主色調 (按鈕/Icon)
-                            hover: 'var(--theme-hover)',     // 主色調 Hover
+                            bg: 'var(--theme-bg)',           
+                            card: 'var(--theme-card)',       
+                            text: 'var(--theme-text)',       
+                            sub: 'var(--theme-sub)',         
+                            border: 'var(--theme-border)',   
+                            primary: 'var(--theme-primary)', 
+                            hover: 'var(--theme-hover)',     
                         }
+                    },
+                    animation: {
+                        'marquee-left': 'marquee-left linear infinite',
+                        'marquee-right': 'marquee-right linear infinite',
+                        'marquee-up': 'marquee-up linear infinite',
+                        'marquee-down': 'marquee-down linear infinite',
+                    },
+                    keyframes: {
+                        'marquee-left': { '0%': { transform: 'translateX(0)' }, '100%': { transform: 'translateX(-50%)' } },
+                        'marquee-right': { '0%': { transform: 'translateX(-50%)' }, '100%': { transform: 'translateX(0)' } },
+                        'marquee-up': { '0%': { transform: 'translateY(0)' }, '100%': { transform: 'translateY(-50%)' } },
+                        'marquee-down': { '0%': { transform: 'translateY(-50%)' }, '100%': { transform: 'translateY(0)' } },
                     }
                 }
             }
@@ -35,95 +47,70 @@
     <style>
         [v-cloak] { display: none; }
         
-        /* --- 3. 定義 5 種風格的 CSS 變數 --- */
+        /* CSS 變數定義 */
         :root {
-            /* 預設 (簡約白) */
-            --theme-bg: #f9fafb;      /* gray-50 */
-            --theme-card: #ffffff;    /* white */
-            --theme-text: #1f2937;    /* gray-800 */
-            --theme-sub: #6b7280;     /* gray-500 */
-            --theme-border: #e5e7eb;  /* gray-200 */
-            --theme-primary: #2563eb; /* blue-600 */
-            --theme-hover: #1d4ed8;   /* blue-700 */
+            --theme-bg: #f9fafb; --theme-card: #ffffff; --theme-text: #1f2937;
+            --theme-sub: #6b7280; --theme-border: #e5e7eb; --theme-primary: #2563eb; --theme-hover: #1d4ed8;
         }
-
-        /* 🌙 暗黑模式 */
         .theme-dark {
-            --theme-bg: #111827;      /* gray-900 */
-            --theme-card: #1f2937;    /* gray-800 */
-            --theme-text: #f3f4f6;    /* gray-100 */
-            --theme-sub: #9ca3af;     /* gray-400 */
-            --theme-border: #374151;  /* gray-700 */
-            --theme-primary: #60a5fa; /* blue-400 */
-            --theme-hover: #3b82f6;   /* blue-500 */
+            --theme-bg: #111827; --theme-card: #1f2937; --theme-text: #f3f4f6;
+            --theme-sub: #9ca3af; --theme-border: #374151; --theme-primary: #60a5fa; --theme-hover: #3b82f6;
         }
-
-        /* 🧧 喜氣紅 (尾牙/春節) */
         .theme-festive {
-            --theme-bg: #fff1f2;      /* rose-50 */
-            --theme-card: #ffffff;
-            --theme-text: #881337;    /* rose-900 */
-            --theme-sub: #be123c;     /* rose-700 */
-            --theme-border: #fda4af;  /* rose-300 */
-            --theme-primary: #e11d48; /* rose-600 */
-            --theme-hover: #be123c;   /* rose-700 */
+            --theme-bg: #fff1f2; --theme-card: #ffffff; --theme-text: #881337;
+            --theme-sub: #be123c; --theme-border: #fda4af; --theme-primary: #e11d48; --theme-hover: #be123c;
         }
-
-        /* 🌿 護眼綠 (踏青/舒適) */
         .theme-nature {
-            --theme-bg: #f0fdf4;      /* green-50 */
-            --theme-card: #ffffff;
-            --theme-text: #14532d;    /* green-900 */
-            --theme-sub: #15803d;     /* green-700 */
-            --theme-border: #bbf7d0;  /* green-200 */
-            --theme-primary: #16a34a; /* green-600 */
-            --theme-hover: #15803d;   /* green-700 */
+            --theme-bg: #f0fdf4; --theme-card: #ffffff; --theme-text: #14532d;
+            --theme-sub: #15803d; --theme-border: #bbf7d0; --theme-primary: #16a34a; --theme-hover: #15803d;
         }
-
-        /* 🌆 沉穩金 (高端/晚宴) */
         .theme-luxury {
-            --theme-bg: #0f172a;      /* slate-900 */
-            --theme-card: #1e293b;    /* slate-800 */
-            --theme-text: #fbbf24;    /* amber-400 */
-            --theme-sub: #94a3b8;     /* slate-400 */
-            --theme-border: #451a03;  /* amber-950 */
-            --theme-primary: #d97706; /* amber-600 */
-            --theme-hover: #b45309;   /* amber-700 */
+            --theme-bg: #0f172a; --theme-card: #1e293b; --theme-text: #fbbf24;
+            --theme-sub: #94a3b8; --theme-border: #451a03; --theme-primary: #d97706; --theme-hover: #b45309;
         }
 
-        /* 通用樣式 */
         body { background-color: var(--theme-bg); color: var(--theme-text); transition: background-color 0.3s, color 0.3s; }
-        .cursor-pen { cursor: none; } 
-        .watermark { position: fixed; bottom: 10px; right: 10px; font-size: 0.7rem; color: rgba(0,0,0,0.2); pointer-events: none; z-index: 9999; }
-        .folder-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
-        .fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
-        .fade-enter-from, .fade-leave-to { opacity: 0; }
-        .animate-fade-in { animation: fadeIn 0.5s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* 播放器專用樣式 */
+        .player-container { background: #000; overflow: hidden; }
+        /* 跑馬燈軌道 */
+        .marquee-track { display: flex; width: max-content; }
+        .marquee-col { display: flex; flex-direction: column; height: max-content; }
+        /* 隱藏捲軸 */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         .custom-scroll::-webkit-scrollbar { width: 6px; }
         .custom-scroll::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.2); border-radius: 3px; }
+        
+        /* HUD 自動隱藏 */
+        .hud-panel { transition: opacity 0.5s ease; opacity: 0; }
+        .player-wrapper:hover .hud-panel, .hud-panel:hover { opacity: 1; }
+        
+        /* 圖片容器 (底片風格) */
+        .film-frame {
+            background: #111;
+            border-radius: 4px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+            border: 1px solid #333;
+            overflow: hidden;
+        }
     </style>
 </head>
 <body class="font-sans antialiased transition-colors duration-300">
 
 <div id="app" v-cloak>
-    <div class="watermark text-theme-sub">Qu Album v5.0</div>
+    <div class="fixed bottom-2 right-2 text-xs text-theme-sub opacity-20 pointer-events-none z-50">Qu Album v5.1</div>
 
     <div v-if="isPortalMode" class="fixed inset-0 z-[200] bg-theme-bg flex flex-col items-center justify-center p-4">
         <div class="bg-theme-card p-8 rounded-2xl shadow-xl max-w-2xl w-full border border-theme-border">
             <h1 class="text-3xl font-bold text-theme-text mb-6 flex items-center justify-center">
                 <i class="fa-solid fa-server text-theme-primary mr-3"></i> 企業相簿總管
             </h1>
-            
             <div v-if="!portalAuth" class="flex flex-col space-y-4">
-                <p class="text-center text-theme-sub mb-2">請輸入 IT 管理密碼以存取索引</p>
-                <input type="password" v-model="portalInput" placeholder="Password" class="border border-theme-border bg-theme-bg text-theme-text p-3 rounded text-center text-lg focus:ring-2 focus:ring-theme-primary outline-none" @keyup.enter="verifyPortal">
+                <input type="password" v-model="portalInput" placeholder="Password" class="border border-theme-border bg-theme-bg text-theme-text p-3 rounded text-center text-lg outline-none" @keyup.enter="verifyPortal">
                 <button @click="verifyPortal" class="bg-theme-primary text-white py-3 rounded hover:bg-theme-hover transition font-bold shadow-md">驗證身份</button>
-                <p v-if="portalError" class="text-red-500 text-center animate-pulse"><i class="fa-solid fa-circle-exclamation mr-1"></i> 密碼錯誤</p>
+                <p v-if="portalError" class="text-red-500 text-center animate-pulse">密碼錯誤</p>
             </div>
-
             <div v-else>
                 <div class="flex justify-between items-center mb-4 border-b border-theme-border pb-2">
                     <span class="text-theme-sub text-sm">已索引單位: {{ units.length }}</span>
@@ -132,11 +119,8 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto pr-2 custom-scroll">
                     <div v-for="unit in units" :key="unit.uuid" @click="switchUnit(unit.uuid)" 
                          class="p-4 border border-theme-border bg-theme-bg rounded-lg hover:border-theme-primary cursor-pointer transition flex justify-between items-center group">
-                        <div>
-                            <div class="font-bold text-lg text-theme-text">{{ unit.name }}</div>
-                            <div class="text-sm text-theme-sub"><i class="fa-solid fa-user-tag mr-1"></i> {{ unit.manager }}</div>
-                        </div>
-                        <i class="fa-solid fa-arrow-right-to-bracket text-theme-sub group-hover:text-theme-primary text-xl"></i>
+                        <div class="font-bold text-lg text-theme-text">{{ unit.name }}</div>
+                        <i class="fa-solid fa-arrow-right-to-bracket text-theme-sub group-hover:text-theme-primary"></i>
                     </div>
                 </div>
             </div>
@@ -148,23 +132,10 @@
             <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-theme-primary mb-4"></div>
             <p class="text-theme-sub animate-pulse">讀取相簿櫃中...</p>
         </div>
-
         <div v-else-if="error" class="fixed inset-0 flex flex-col items-center justify-center bg-theme-bg p-4 text-center z-40">
-            <div v-if="error === 'HOME'" class="bg-theme-card p-8 rounded-2xl shadow-xl max-w-md w-full border border-theme-border">
-                <div class="mb-6 flex justify-center"><div class="w-20 h-20 bg-theme-bg border border-theme-border rounded-full flex items-center justify-center"><i class="fa-solid fa-camera-retro text-4xl text-theme-primary"></i></div></div>
-                <h2 class="text-2xl font-bold text-theme-text mb-2">Qu相簿入口</h2>
-                <div class="flex flex-col space-y-3 mt-6">
-                    <input type="text" v-model="inputDeploymentId" placeholder="輸入 UUID" class="w-full border border-theme-border bg-theme-bg text-theme-text rounded-lg px-4 py-3 focus:ring-2 focus:ring-theme-primary outline-none text-center font-mono text-lg">
-                    <button @click="openById" class="w-full bg-theme-primary hover:bg-theme-hover text-white px-6 py-3 rounded-lg font-bold transition shadow-md hover:shadow-lg">進入</button>
-                </div>
-                <p class="mt-6 text-xs text-theme-sub">請向管理員索取相簿 ID</p>
-            </div>
-            <div v-else>
-                <i class="fa-solid fa-triangle-exclamation text-6xl text-red-400 mb-4"></i>
-                <h2 class="text-2xl font-bold text-theme-text mb-2">存取拒絕</h2>
-                <p class="text-theme-sub max-w-md bg-theme-card p-4 rounded border border-red-100 shadow-sm">{{ error }}</p>
-                <button @click="goHomeRoot" class="mt-6 text-theme-primary hover:underline">回到首頁</button>
-            </div>
+             <h2 class="text-2xl font-bold text-theme-text mb-2">請輸入 ID 或發生錯誤</h2>
+             <input type="text" v-model="inputDeploymentId" placeholder="輸入 UUID" class="border border-theme-border rounded px-4 py-2 mb-2">
+             <button @click="openById" class="bg-theme-primary text-white px-4 py-2 rounded">進入</button>
         </div>
 
         <div v-else class="min-h-screen flex flex-col">
@@ -175,16 +146,33 @@
                             <i class="fa-solid fa-camera-retro text-theme-primary text-2xl mr-2"></i>
                             <span class="font-bold text-xl tracking-tight text-theme-text">{{ sysInfo.title || 'Qu Album' }}</span>
                         </div>
-                        <div class="flex items-center space-x-4">
+                        <div class="flex items-center space-x-2">
+                            
+                            <div class="relative hidden md:block" v-if="currentFiles.length > 0">
+                                <button @click="showPlayMenu = !showPlayMenu" class="flex items-center text-theme-sub hover:text-theme-primary transition px-3 py-2 rounded hover:bg-theme-bg font-bold">
+                                    <i class="fa-solid fa-play mr-2"></i> 展示
+                                </button>
+                                <div v-if="showPlayMenu" class="absolute right-0 mt-2 w-48 bg-theme-card rounded-lg shadow-xl border border-theme-border py-1 z-50 animate-fade-in">
+                                    <div @click="startPlay('slide')" class="px-4 py-3 hover:bg-theme-bg cursor-pointer flex items-center group border-b border-theme-border">
+                                        <i class="fa-solid fa-images w-6 text-theme-primary"></i> <span class="text-theme-text text-sm">幻燈片播放</span>
+                                    </div>
+                                    <div @click="startPlay('h-wall')" class="px-4 py-3 hover:bg-theme-bg cursor-pointer flex items-center group border-b border-theme-border">
+                                        <i class="fa-solid fa-film w-6 text-theme-primary"></i> <span class="text-theme-text text-sm">橫向跑馬燈</span>
+                                    </div>
+                                    <div @click="startPlay('v-wall')" class="px-4 py-3 hover:bg-theme-bg cursor-pointer flex items-center group">
+                                        <i class="fa-solid fa-water w-6 text-theme-primary"></i> <span class="text-theme-text text-sm">縱向瀑布流</span>
+                                    </div>
+                                </div>
+                                <div v-if="showPlayMenu" @click="showPlayMenu = false" class="fixed inset-0 z-40"></div>
+                            </div>
+
                             <div class="relative">
                                 <button @click="showThemeMenu = !showThemeMenu" class="text-theme-sub hover:text-theme-primary transition p-2 rounded-full hover:bg-theme-bg" title="切換風格">
                                     <i class="fa-solid fa-palette text-lg"></i>
                                 </button>
-                                <div v-if="showThemeMenu" class="absolute right-0 mt-2 w-48 bg-theme-card rounded-lg shadow-xl border border-theme-border py-1 z-50 animate-fade-in">
-                                    <div v-for="theme in themes" :key="theme.id" 
-                                         @click="setTheme(theme.id)"
-                                         class="px-4 py-2 hover:bg-theme-bg cursor-pointer flex items-center justify-between group">
-                                        <span class="text-theme-text text-sm group-hover:text-theme-primary">{{ theme.name }}</span>
+                                <div v-if="showThemeMenu" class="absolute right-0 mt-2 w-40 bg-theme-card rounded-lg shadow-xl border border-theme-border py-1 z-50 animate-fade-in">
+                                    <div v-for="theme in themes" :key="theme.id" @click="setTheme(theme.id)" class="px-4 py-2 hover:bg-theme-bg cursor-pointer flex justify-between">
+                                        <span class="text-theme-text text-sm">{{ theme.name }}</span>
                                         <i v-if="currentTheme === theme.id" class="fa-solid fa-check text-theme-primary text-xs"></i>
                                     </div>
                                 </div>
@@ -215,9 +203,7 @@
                                 <div class="aspect-w-4 aspect-h-3 bg-theme-bg relative overflow-hidden">
                                     <img :src="album.cover || 'https://via.placeholder.com/400x300?text=No+Cover'" class="object-cover w-full h-full group-hover:scale-110 transition-transform duration-700">
                                     <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all"></div>
-                                    <div v-if="album.pwd" class="absolute top-2 right-2 bg-black/70 text-white px-3 py-1 rounded-full text-xs font-bold border border-white/20">
-                                        <i class="fa-solid fa-lock mr-1"></i> 上鎖
-                                    </div>
+                                    <div v-if="album.pwd" class="absolute top-2 right-2 bg-black/70 text-white px-3 py-1 rounded-full text-xs font-bold border border-white/20"><i class="fa-solid fa-lock mr-1"></i> 上鎖</div>
                                 </div>
                                 <div class="p-4">
                                     <h3 class="font-bold text-lg text-theme-text truncate group-hover:text-theme-primary">{{ album.name }}</h3>
@@ -260,7 +246,6 @@
                                 </div>
                             </div>
                         </div>
-
                         <div v-if="currentFolders.length === 0 && currentFiles.length === 0" class="text-center py-20 opacity-50">
                             <i class="fa-regular fa-folder-open text-6xl mb-4 text-theme-sub"></i>
                             <p class="text-theme-sub">此資料夾是空的</p>
@@ -272,58 +257,113 @@
 
         <transition name="fade">
             <div v-if="auth.required" class="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-                <div class="bg-theme-card rounded-2xl shadow-2xl p-8 max-w-sm w-full text-center transform transition-all scale-100 border border-theme-border">
-                    <div class="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <i class="fa-solid fa-lock text-2xl"></i>
-                    </div>
-                    <h3 class="text-xl font-bold text-theme-text mb-2">
-                        {{ auth.type === 'global' ? '全站鎖定' : '相簿上鎖' }}
-                    </h3>
-                    <p class="text-theme-sub text-sm mb-6">
-                        {{ auth.type === 'global' ? '請輸入全站存取密碼' : '此資料夾受密碼保護' }}
-                    </p>
+                <div class="bg-theme-card rounded-2xl shadow-2xl p-8 max-w-sm w-full text-center border border-theme-border">
+                    <div class="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4"><i class="fa-solid fa-lock text-2xl"></i></div>
+                    <h3 class="text-xl font-bold text-theme-text mb-2">{{ auth.type === 'global' ? '全站鎖定' : '相簿上鎖' }}</h3>
                     <form @submit.prevent="verifyPassword">
-                        <input type="password" v-model="auth.input" ref="pwdInput" placeholder="輸入密碼..." 
-                               class="w-full border border-theme-border bg-theme-bg text-theme-text rounded-lg px-4 py-3 focus:ring-2 focus:ring-theme-primary outline-none text-center mb-4 tracking-widest text-lg">
-                        <button type="submit" class="w-full bg-theme-primary hover:bg-theme-hover text-white font-bold py-3 rounded-lg transition shadow-md">
-                            {{ auth.verifying ? '驗證中...' : '解鎖' }}
-                        </button>
-                        <p v-if="auth.error" class="text-red-500 text-xs mt-3 animate-pulse font-bold">
-                            <i class="fa-solid fa-circle-exclamation mr-1"></i> 密碼錯誤
-                        </p>
+                        <input type="password" v-model="auth.input" placeholder="輸入密碼..." class="w-full border border-theme-border bg-theme-bg text-theme-text rounded-lg px-4 py-3 text-center mb-4 tracking-widest text-lg outline-none">
+                        <button type="submit" class="w-full bg-theme-primary hover:bg-theme-hover text-white font-bold py-3 rounded-lg transition">{{ auth.verifying ? '驗證中...' : '解鎖' }}</button>
+                        <p v-if="auth.error" class="text-red-500 text-xs mt-3 animate-pulse">密碼錯誤</p>
                     </form>
                     <button v-if="auth.type === 'folder'" @click="cancelAuth" class="mt-4 text-theme-sub text-sm hover:text-theme-text underline">取消</button>
                 </div>
             </div>
         </transition>
 
+        <div v-if="isPlaying" class="fixed inset-0 z-[300] bg-black player-container player-wrapper" @mousemove="onPlayerMouseMove">
+            
+            <div v-if="playMode === 'slide'" class="w-full h-full flex items-center justify-center relative">
+                <transition name="fade" mode="out-in">
+                    <img :key="playList[currentPlayIndex].id" :src="playList[currentPlayIndex].url" 
+                         class="max-h-full max-w-full object-contain shadow-2xl">
+                </transition>
+            </div>
+
+            <div v-if="playMode === 'h-wall'" class="w-full h-full flex flex-col justify-center space-y-4 p-4">
+                <div v-for="(row, rIndex) in 3" :key="rIndex" class="overflow-hidden relative w-full h-[30vh]">
+                    <div class="marquee-track absolute top-0" 
+                         :class="rIndex % 2 === 0 ? 'animate-marquee-left' : 'animate-marquee-right'"
+                         :style="{ animationDuration: playConfig.speed + 's', animationPlayState: isPaused ? 'paused' : 'running' }">
+                         <div v-for="item in [...playList, ...playList]" :key="item.id + Math.random()" class="w-[40vh] h-[30vh] px-2 flex-shrink-0">
+                             <div class="film-frame w-full h-full p-1 bg-gray-900">
+                                 <img :src="item.cover" class="w-full h-full object-contain bg-black">
+                             </div>
+                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <div v-if="playMode === 'v-wall'" class="w-full h-full flex justify-center space-x-4 p-4 overflow-hidden">
+                <div v-for="(col, cIndex) in 4" :key="cIndex" class="h-full w-1/4 relative overflow-hidden">
+                    <div class="marquee-col absolute left-0 w-full"
+                         :class="cIndex % 2 === 0 ? 'animate-marquee-up' : 'animate-marquee-down'"
+                         :style="{ animationDuration: playConfig.speed + 's', animationPlayState: isPaused ? 'paused' : 'running' }">
+                         <div v-for="item in [...playList, ...playList]" :key="item.id + Math.random()" class="w-full h-auto py-2">
+                             <div class="film-frame w-full aspect-square p-1 bg-gray-900">
+                                 <img :src="item.cover" class="w-full h-full object-contain bg-black">
+                             </div>
+                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="hud-panel absolute bottom-0 left-0 right-0 p-6 flex justify-center items-center bg-gradient-to-t from-black/90 to-transparent">
+                <div class="bg-gray-800/80 backdrop-blur-md rounded-full px-6 py-3 flex items-center space-x-6 border border-gray-600 shadow-2xl">
+                    
+                    <button @click="stopPlay" class="text-white hover:text-red-400 transition flex flex-col items-center">
+                        <i class="fa-solid fa-power-off text-xl mb-1"></i>
+                        <span class="text-[10px] uppercase">Exit</span>
+                    </button>
+
+                    <div class="h-8 w-px bg-gray-600"></div>
+
+                    <button @click="togglePause" class="text-white hover:text-blue-400 transition flex flex-col items-center w-12">
+                        <i :class="isPaused ? 'fa-solid fa-play' : 'fa-solid fa-pause'" class="text-xl mb-1"></i>
+                        <span class="text-[10px] uppercase">{{ isPaused ? 'Play' : 'Pause' }}</span>
+                    </button>
+
+                    <div v-if="playMode === 'slide'" class="flex items-center space-x-2">
+                         <span class="text-gray-400 text-xs">秒數</span>
+                         <select v-model="playConfig.interval" class="bg-gray-900 text-white text-sm rounded border border-gray-600 px-2 py-1 outline-none">
+                             <option :value="3000">3s</option>
+                             <option :value="5000">5s</option>
+                             <option :value="10000">10s</option>
+                         </select>
+                    </div>
+
+                    <div v-if="playMode !== 'slide'" class="flex items-center space-x-2">
+                        <span class="text-gray-400 text-xs">速度</span>
+                        <div class="flex bg-gray-900 rounded-lg p-1 border border-gray-600">
+                            <button @click="playConfig.speed = 60" :class="playConfig.speed === 60 ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'" class="px-3 py-1 text-xs rounded transition">慢</button>
+                            <button @click="playConfig.speed = 40" :class="playConfig.speed === 40 ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'" class="px-3 py-1 text-xs rounded transition">中</button>
+                            <button @click="playConfig.speed = 20" :class="playConfig.speed === 20 ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'" class="px-3 py-1 text-xs rounded transition">快</button>
+                        </div>
+                    </div>
+
+                    <div v-if="playMode === 'slide'" class="flex space-x-4 pl-4 border-l border-gray-600">
+                         <button @click="prevPlay" class="text-white hover:text-blue-400"><i class="fa-solid fa-backward-step fa-lg"></i></button>
+                         <button @click="nextPlay" class="text-white hover:text-blue-400"><i class="fa-solid fa-forward-step fa-lg"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div v-if="showLightbox" class="fixed inset-0 z-[100] bg-black/95 flex flex-col" @keydown.esc="closeLightbox" tabindex="0">
-            <div class="flex justify-between items-center p-4 text-white bg-gradient-to-b from-black/80 to-transparent z-50">
+             <div class="flex justify-between items-center p-4 text-white bg-gradient-to-b from-black/80 to-transparent z-50">
                 <div class="flex items-center space-x-4">
                     <span class="font-bold font-mono">{{ currentPhotoIndex + 1 }} / {{ currentFiles.length }}</span>
                     <button @click="toggleDrawing" :class="isDrawingMode ? 'bg-theme-primary border-transparent text-white' : 'bg-gray-800 border-gray-600'" class="px-3 py-1.5 rounded-full text-sm border flex items-center transition transition-all"><i class="fa-solid fa-pen-nib mr-2"></i> 標記</button>
-                    
                     <div v-if="isDrawingMode" class="flex space-x-2 animate-fade-in items-center pl-2 border-l border-gray-700">
-                        <template v-for="color in colorPalette" :key="color.hex">
-                            <button @click="penColor = color.hex" 
-                                    class="w-6 h-6 rounded-full border-2 transition box-content"
-                                    :class="[color.bg, penColor === color.hex ? 'border-white scale-110 shadow-sm' : 'border-transparent opacity-80 hover:opacity-100']">
-                            </button>
-                        </template>
+                        <template v-for="color in colorPalette" :key="color.hex"><button @click="penColor = color.hex" class="w-6 h-6 rounded-full border-2 transition box-content" :class="[color.bg, penColor === color.hex ? 'border-white scale-110 shadow-sm' : 'border-transparent opacity-80 hover:opacity-100']"></button></template>
                         <button @click="clearCanvas" class="text-xs bg-gray-800 px-2 py-1 rounded ml-2 hover:bg-gray-700 text-gray-300"><i class="fa-solid fa-trash-can mr-1"></i> 清除</button>
                     </div>
                 </div>
                 <button @click="closeLightbox" class="w-10 h-10 rounded-full bg-gray-800 hover:bg-red-500 flex items-center justify-center transition"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
-            
             <div class="flex-1 relative flex items-center justify-center overflow-hidden bg-black select-none w-full h-full">
-                <canvas ref="drawCanvas" v-show="isDrawingMode" class="absolute inset-0 z-20 touch-none w-full h-full object-contain"
-                    :style="{ cursor: isDrawingMode ? 'url(' + penCursorUrl + ') 0 24, crosshair' : 'default' }"
-                    @mousedown="startDraw" @mousemove="drawing" @mouseup="stopDraw" @mouseout="stopDraw" @touchstart="startDraw" @touchmove="drawing" @touchend="stopDraw"></canvas>
-                
+                <canvas ref="drawCanvas" v-show="isDrawingMode" class="absolute inset-0 z-20 touch-none w-full h-full object-contain" :style="{ cursor: isDrawingMode ? 'url(' + penCursorUrl + ') 0 24, crosshair' : 'default' }" @mousedown="startDraw" @mousemove="drawing" @mouseup="stopDraw" @mouseout="stopDraw" @touchstart="startDraw" @touchmove="drawing" @touchend="stopDraw"></canvas>
                 <img v-if="currentPhoto.mime === 'i'" :src="currentPhoto.url" class="max-h-full max-w-full object-contain z-10 pointer-events-none">
                 <video v-else :src="getProxyUrl(currentPhoto.url)" controls autoplay class="max-h-full max-w-full z-10"></video>
-                
                 <button v-if="!isDrawingMode" @click="prevPhoto" class="absolute left-4 z-30 w-12 h-12 rounded-full bg-black/50 hover:bg-white/20 text-white flex items-center justify-center transition"><i class="fa-solid fa-chevron-left text-2xl"></i></button>
                 <button v-if="!isDrawingMode" @click="nextPhoto" class="absolute right-4 z-30 w-12 h-12 rounded-full bg-black/50 hover:bg-white/20 text-white flex items-center justify-center transition"><i class="fa-solid fa-chevron-right text-2xl"></i></button>
             </div>
@@ -332,78 +372,140 @@
 </div>
 
 <script>
-    const { createApp, ref, computed, onMounted, nextTick, watch } = Vue; // 🔥 加入 watch
+    const { createApp, ref, computed, onMounted, nextTick, watch } = Vue;
     createApp({
         setup() {
-            // --- Theme Logic (Fixed) ---
+            // --- Theme Logic ---
             const themes = [
-                { id: 'default', name: '🏢 簡約白' },
-                { id: 'dark', name: '🌙 暗黑模式' },
-                { id: 'festive', name: '🧧 喜氣紅' },
-                { id: 'nature', name: '🌿 護眼綠' },
-                { id: 'luxury', name: '🌆 沉穩金' },
+                { id: 'default', name: '🏢 簡約白' }, { id: 'dark', name: '🌙 暗黑模式' },
+                { id: 'festive', name: '🧧 喜氣紅' }, { id: 'nature', name: '🌿 護眼綠' }, { id: 'luxury', name: '🌆 沉穩金' },
             ];
             const currentTheme = ref('default');
             const showThemeMenu = ref(false);
-
-            // 🔥 修正核心：監聽主題變化，直接修改 body 的 class
             const applyThemeToBody = (themeId) => {
-                // 移除所有可能的 theme class
                 themes.forEach(t => document.body.classList.remove(`theme-${t.id}`));
-                // 如果不是預設，就加上對應的 class
-                if (themeId !== 'default') {
-                    document.body.classList.add(`theme-${themeId}`);
-                }
+                if (themeId !== 'default') document.body.classList.add(`theme-${themeId}`);
             };
-
-            // 監聽變數變化
-            watch(currentTheme, (newVal) => {
-                applyThemeToBody(newVal);
-                localStorage.setItem('qu-theme', newVal);
-            });
-
-            // 設定主題
-            const setTheme = (id) => {
-                currentTheme.value = id;
-                showThemeMenu.value = false;
-            };
-
-            // 初始化主題
+            watch(currentTheme, (newVal) => { applyThemeToBody(newVal); localStorage.setItem('qu-theme', newVal); });
+            const setTheme = (id) => { currentTheme.value = id; showThemeMenu.value = false; };
             const initTheme = () => {
                 const saved = localStorage.getItem('qu-theme');
-                if (saved && themes.some(t => t.id === saved)) {
-                    currentTheme.value = saved;
-                } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                    currentTheme.value = 'dark'; 
-                }
-                // 初始化時立即套用
+                if (saved && themes.some(t => t.id === saved)) currentTheme.value = saved;
+                else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) currentTheme.value = 'dark';
                 applyThemeToBody(currentTheme.value);
             };
 
-            // --- State ---
+            // --- Player Logic (Auto Play) ---
+            const isPlaying = ref(false);
+            const playMode = ref('slide'); // 'slide', 'h-wall', 'v-wall'
+            const showPlayMenu = ref(false);
+            const isPaused = ref(false);
+            const playList = ref([]);
+            const currentPlayIndex = ref(0);
+            const playConfig = ref({ interval: 5000, speed: 40 }); // speed: 60(Slow), 40(Mid), 20(Fast)
+            let slideTimer = null;
+            let wakeLockSentinel = null;
+
+            // 1. 準備播放清單 (檔名倒序 + 取前30)
+            const preparePlayList = () => {
+                const list = [...currentFiles.value];
+                // 檔名倒序 Z->A (模擬最新)
+                list.sort((a, b) => b.name.localeCompare(a.name));
+                return list.slice(0, 30);
+            };
+
+            // 2. 請求防休眠
+            const toggleWakeLock = async (active) => {
+                try {
+                    if (active && 'wakeLock' in navigator) {
+                        wakeLockSentinel = await navigator.wakeLock.request('screen');
+                    } else if (!active && wakeLockSentinel) {
+                        await wakeLockSentinel.release();
+                        wakeLockSentinel = null;
+                    }
+                } catch (e) { console.warn('Wake Lock error:', e); }
+            };
+
+            // 3. 開始播放
+            const startPlay = async (mode) => {
+                playList.value = preparePlayList();
+                if (playList.value.length === 0) return alert('無照片可播放');
+                
+                playMode.value = mode;
+                showPlayMenu.value = false;
+                isPlaying.value = true;
+                isPaused.value = false;
+                currentPlayIndex.value = 0;
+
+                // 全螢幕 & 防休眠
+                try {
+                    if (document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen();
+                } catch(e){}
+                await toggleWakeLock(true);
+
+                if (mode === 'slide') startSlideTimer();
+            };
+
+            // 4. 停止播放
+            const stopPlay = async () => {
+                isPlaying.value = false;
+                clearInterval(slideTimer);
+                try {
+                    if (document.fullscreenElement) await document.exitFullscreen();
+                } catch(e){}
+                await toggleWakeLock(false);
+            };
+
+            // 幻燈片計時器
+            const startSlideTimer = () => {
+                clearInterval(slideTimer);
+                if (isPaused.value) return;
+                slideTimer = setInterval(() => {
+                    currentPlayIndex.value = (currentPlayIndex.value + 1) % playList.value.length;
+                }, playConfig.value.interval);
+            };
+
+            // 監聽幻燈片設定變更
+            watch(() => playConfig.value.interval, () => {
+                if (playMode.value === 'slide' && isPlaying.value) startSlideTimer();
+            });
+
+            // 控制
+            const togglePause = () => {
+                isPaused.value = !isPaused.value;
+                if (playMode.value === 'slide') {
+                    if (isPaused.value) clearInterval(slideTimer);
+                    else startSlideTimer();
+                }
+            };
+            const nextPlay = () => {
+                currentPlayIndex.value = (currentPlayIndex.value + 1) % playList.value.length;
+                startSlideTimer(); // 重置計時
+            };
+            const prevPlay = () => {
+                currentPlayIndex.value = (currentPlayIndex.value - 1 + playList.value.length) % playList.value.length;
+                startSlideTimer();
+            };
+            
+            // HUD 互動 (可擴充)
+            const onPlayerMouseMove = () => { /* CSS Hover handles visibility */ };
+
+            // --- State (Original) ---
             const loading = ref(true);
             const error = ref(null);
             const inputDeploymentId = ref('');
             const sysInfo = ref({});
             const albums = ref([]);
-            
-            // Portal State
             const isPortalMode = ref(false);
             const portalAuth = ref(false);
             const portalInput = ref('');
             const portalError = ref(false);
             const units = ref([]);
             const masterHash = ref('');
-
-            // Auth State
             const auth = ref({ required: false, type: '', target: null, input: '', error: false, verifying: false });
-
-            // Navigation
             const viewMode = ref('bookshelf');
             const breadcrumbs = ref([]);
             const currentNode = ref(null);
-
-            // Lightbox & Drawing
             const showLightbox = ref(false);
             const currentPhotoIndex = ref(0);
             const isDrawingMode = ref(false);
@@ -419,8 +521,6 @@
             const ctx = ref(null);
             const isPainting = ref(false);
             const penCursorUrl = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.5));"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path><path d="M2 2l7.586 7.586"></path></svg>';
-
-            // --- Helpers ---
             const currentFolders = computed(() => currentNode.value?.children?.filter(c => c.type === 'folder') || []);
             const currentFiles = computed(() => currentNode.value?.children?.filter(c => c.type === 'file') || []);
             const currentPhoto = computed(() => currentFiles.value[currentPhotoIndex.value] || {});
@@ -430,7 +530,6 @@
                 const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
                 return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
             }
-
             const getProxyUrl = (u) => `/api/proxy?url=${encodeURIComponent(u)}`;
 
             // --- Portal Logic ---
@@ -444,160 +543,96 @@
                             const data = await res.json();
                             masterHash.value = data.sys.password;
                             units.value = data.units || [];
-                        } else {
-                            alert("Master Index Not Found");
-                        }
+                        } else { alert("Master Index Not Found"); }
                     } catch(e) { console.error("Portal Load Error", e); }
                 }
             };
-
             const verifyPortal = async () => {
                 const inputHash = await sha256(portalInput.value);
-                if (inputHash === masterHash.value) {
-                    portalAuth.value = true;
-                    portalError.value = false;
-                } else {
-                    portalError.value = true;
-                }
+                if (inputHash === masterHash.value) { portalAuth.value = true; portalError.value = false; } else { portalError.value = true; }
             };
-
-            const switchUnit = (uuid) => {
-                window.location.href = `?id=${uuid}`;
-            };
-            
-            const exitPortal = () => {
-                window.location.href = window.location.pathname;
-            };
-
-            // --- Main Logic ---
+            const switchUnit = (uuid) => { window.location.href = `?id=${uuid}`; };
+            const exitPortal = () => { window.location.href = window.location.pathname; };
             const fetchData = async (id) => {
                 try {
                     const res = await fetch(`/api/albums?id=${id}`);
                     if (!res.ok) throw new Error('讀取失敗');
                     const data = await res.json();
                     if (data.error) throw new Error(data.error);
-                    sysInfo.value = data.sys;
-                    albums.value = data.albums;
+                    sysInfo.value = data.sys; albums.value = data.albums;
                     if (sysInfo.value.password) triggerAuth('global');
                 } catch (err) { error.value = err.message; } finally { loading.value = false; }
             };
-
             const enterFolder = (folder) => {
                 if (folder.pwd && folder.password) triggerAuth('folder', folder);
                 else actuallyEnterFolder(folder);
             };
-
             const actuallyEnterFolder = (folder) => {
                 currentNode.value = folder;
                 breadcrumbs.value.push({ id: folder.id, name: folder.name, node: folder });
                 viewMode.value = 'explorer';
             };
-
-            // --- Auth Logic ---
             const triggerAuth = (type, target = null) => {
                 auth.value = { required: true, type, target, input: '', error: false, verifying: false };
                 nextTick(() => { document.querySelector('input[type="password"]')?.focus(); });
             };
-
             const verifyPassword = async () => {
                 auth.value.verifying = true;
                 const input = String(auth.value.input).trim();
                 let hashedInput = '';
                 if(input) hashedInput = await sha256(input);
-
-                let correctHash = '';
-                if (auth.value.type === 'global') {
-                    correctHash = sysInfo.value.password || '';
-                } else if (auth.value.type === 'folder') {
-                    correctHash = auth.value.target.password || '';
-                }
-
-                if (hashedInput === correctHash) {
+                let correctHash = (auth.value.type === 'global') ? sysInfo.value.password : auth.value.target.password;
+                if (hashedInput === (correctHash || '')) {
                     const target = auth.value.target;
                     auth.value.required = false; 
-                    if (auth.value.type === 'folder' && target) {
-                        actuallyEnterFolder(target);
-                    }
-                } else {
-                    auth.value.error = true;
-                    auth.value.input = '';
-                }
+                    if (auth.value.type === 'folder' && target) actuallyEnterFolder(target);
+                } else { auth.value.error = true; auth.value.input = ''; }
                 auth.value.verifying = false;
             };
             const cancelAuth = () => { auth.value.required = false; };
-
-            // --- Lifecycle ---
-            onMounted(async () => {
-                initTheme(); // 1. 初始化主題
-                await checkPortal(); 
-                
-                if (!isPortalMode.value) {
-                    const id = new URLSearchParams(window.location.search).get('id');
-                    if (!id) { loading.value = false; error.value = "HOME"; return; }
-                    await fetchData(id); 
-                } else {
-                    loading.value = false; 
-                }
-
-                window.addEventListener('keydown', (e) => {
-                    if (showLightbox.value) {
-                        if (e.key === 'ArrowRight') nextPhoto();
-                        if (e.key === 'ArrowLeft') prevPhoto();
-                        if (e.key === 'Escape') closeLightbox();
-                    }
-                });
-                window.addEventListener('resize', () => { if (isDrawingMode.value) initCanvas(); });
-            });
-
-            // --- Interactions ---
             const openById = () => { if(inputDeploymentId.value) window.location.href = `?id=${inputDeploymentId.value.trim()}`; };
             const goHomeRoot = () => { window.location.href = window.location.pathname; };
             const copyShareLink = () => { navigator.clipboard.writeText(window.location.href).then(() => alert('已複製連結')); };
             const goHome = () => { viewMode.value = 'bookshelf'; breadcrumbs.value = []; currentNode.value = null; };
             const navigateBreadcrumb = (idx) => { const t = breadcrumbs.value[idx]; currentNode.value = t.node; breadcrumbs.value = breadcrumbs.value.slice(0, idx + 1); };
-            
-            // Lightbox
             const openLightbox = (idx) => { currentPhotoIndex.value = idx; showLightbox.value = true; isDrawingMode.value = false; };
             const closeLightbox = () => { showLightbox.value = false; clearCanvas(); };
             const nextPhoto = () => { currentPhotoIndex.value = (currentPhotoIndex.value + 1) % currentFiles.value.length; clearCanvas(); };
             const prevPhoto = () => { currentPhotoIndex.value = (currentPhotoIndex.value - 1 + currentFiles.value.length) % currentFiles.value.length; clearCanvas(); };
-            
-            // Drawing
             const toggleDrawing = async () => { isDrawingMode.value = !isDrawingMode.value; if(isDrawingMode.value) { await nextTick(); initCanvas(); } };
-            
             const initCanvas = () => { 
                 const c = drawCanvas.value; if(!c) return; 
                 const rect = c.getBoundingClientRect();
                 c.width = rect.width; c.height = rect.height; 
-                ctx.value = c.getContext('2d'); 
-                ctx.value.lineCap='round'; ctx.value.lineJoin='round'; ctx.value.lineWidth=5; 
+                ctx.value = c.getContext('2d'); ctx.value.lineCap='round'; ctx.value.lineJoin='round'; ctx.value.lineWidth=5; 
             };
-
-            const getPos = (e) => {
-                 const c = drawCanvas.value; if(!c) return {x:0, y:0};
-                 const clientX = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
-                 const clientY = (e.touches && e.touches[0]) ? e.touches[0].clientY : e.clientY;
-                 const rect = c.getBoundingClientRect();
-                 return { x: clientX - rect.left, y: clientY - rect.top };
-            };
-
+            const getPos = (e) => { const c = drawCanvas.value; if(!c) return {x:0, y:0}; const clientX = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX; const clientY = (e.touches && e.touches[0]) ? e.touches[0].clientY : e.clientY; const rect = c.getBoundingClientRect(); return { x: clientX - rect.left, y: clientY - rect.top }; };
             const startDraw = (e) => { if(!isDrawingMode.value) return; isPainting.value = true; const {x,y} = getPos(e); ctx.value.strokeStyle = penColor.value; ctx.value.beginPath(); ctx.value.moveTo(x,y); };
             const drawing = (e) => { if(!isPainting.value) return; e.preventDefault(); const {x,y} = getPos(e); ctx.value.lineTo(x,y); ctx.value.stroke(); };
             const stopDraw = () => { isPainting.value = false; if(ctx.value) ctx.value.closePath(); };
             const clearCanvas = () => { if(ctx.value) ctx.value.clearRect(0,0,drawCanvas.value.width, drawCanvas.value.height); };
-            
             const downloadCurrentFolder = async () => {
-                const zip = new JSZip();
-                const files = currentFiles.value;
+                const zip = new JSZip(); const files = currentFiles.value;
                 if(files.length===0) return alert('無照片');
                 alert(`打包中...`);
-                try {
-                    await Promise.all(files.map(async (p) => {
-                        try { const res = await fetch(getProxyUrl(p.url)); if(res.ok) zip.file(p.name, await res.blob()); } catch(e){}
-                    }));
-                    saveAs(await zip.generateAsync({type:"blob"}), `${currentNode.value.name}.zip`);
-                } catch(e) { alert('下載失敗'); }
+                try { await Promise.all(files.map(async (p) => { try { const res = await fetch(getProxyUrl(p.url)); if(res.ok) zip.file(p.name, await res.blob()); } catch(e){} })); saveAs(await zip.generateAsync({type:"blob"}), `${currentNode.value.name}.zip`); } catch(e) { alert('下載失敗'); }
             };
+
+            onMounted(async () => {
+                initTheme(); await checkPortal();
+                if (!isPortalMode.value) {
+                    const id = new URLSearchParams(window.location.search).get('id');
+                    if (!id) { loading.value = false; error.value = "HOME"; return; }
+                    await fetchData(id); 
+                } else { loading.value = false; }
+                window.addEventListener('keydown', (e) => {
+                    if (showLightbox.value) {
+                        if (e.key === 'ArrowRight') nextPhoto(); if (e.key === 'ArrowLeft') prevPhoto(); if (e.key === 'Escape') closeLightbox();
+                    }
+                    if (isPlaying.value && e.key === 'Escape') stopPlay();
+                });
+                window.addEventListener('resize', () => { if (isDrawingMode.value) initCanvas(); });
+            });
 
             return {
                 loading, error, inputDeploymentId, sysInfo, albums, viewMode, breadcrumbs, currentFolders, currentFiles, currentPhoto,
@@ -606,8 +641,9 @@
                 isDrawingMode, penColor, colorPalette, drawCanvas, toggleDrawing, startDraw, drawing, stopDraw, clearCanvas,
                 getProxyUrl, downloadCurrentFolder, auth, verifyPassword, cancelAuth, penCursorUrl,
                 isPortalMode, portalAuth, portalInput, portalError, units, verifyPortal, switchUnit, exitPortal,
-                // Themes
-                themes, currentTheme, showThemeMenu, setTheme
+                themes, currentTheme, showThemeMenu, setTheme,
+                // Player
+                isPlaying, playMode, showPlayMenu, playList, currentPlayIndex, playConfig, isPaused, startPlay, stopPlay, togglePause, nextPlay, prevPlay, onPlayerMouseMove
             };
         }
     }).mount('#app');
