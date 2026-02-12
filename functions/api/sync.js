@@ -13,7 +13,7 @@
     <style>
         [v-cloak] { display: none; }
         /* 畫筆游標 (SVG) */
-        .cursor-pen { cursor: none; } /* Canvas 控制游標 */
+        .cursor-pen { cursor: none; } 
         .watermark { position: fixed; bottom: 10px; right: 10px; font-size: 0.7rem; color: rgba(0,0,0,0.2); pointer-events: none; z-index: 9999; }
         .folder-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
         /* 動畫效果 */
@@ -24,12 +24,14 @@
         /* 隱藏滾動條 */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.2); border-radius: 3px; }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans antialiased">
 
 <div id="app" v-cloak>
-    <div class="watermark">Qu Album Enterprise</div>
+    <div class="watermark">Qu Album v4.7</div>
 
     <div v-if="isPortalMode" class="fixed inset-0 z-[200] bg-gray-100 flex flex-col items-center justify-center p-4">
         <div class="bg-white p-8 rounded-2xl shadow-xl max-w-2xl w-full border border-gray-200">
@@ -154,7 +156,7 @@
                             <div class="flex justify-between items-end mb-3">
                                 <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider">照片 ({{ currentFiles.length }})</h3>
                                 <button @click="downloadCurrentFolder" class="text-xs bg-gray-800 text-white px-3 py-1.5 rounded-full hover:bg-gray-700 transition flex items-center shadow-md">
-                                    <i class="fa-solid fa-download mr-1"></i> 打包此層
+                                    <i class="fa-solid fa-download mr-1"></i> 打包下載本頁照片
                                 </button>
                             </div>
                             <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-4">
@@ -299,14 +301,13 @@
                 if (params.get('portal') === '1') {
                     isPortalMode.value = true;
                     try {
-                        // 載入 Master Index
                         const res = await fetch(`/api/albums?id=_MASTER_INDEX`);
                         if(res.ok) {
                             const data = await res.json();
                             masterHash.value = data.sys.password; // IT 密碼雜湊
                             units.value = data.units || [];
                         } else {
-                            alert("Master Index Not Found");
+                            alert("Master Index Not Found (請確認 IT 總表已同步)");
                         }
                     } catch(e) { console.error("Portal Load Error", e); }
                 }
@@ -323,12 +324,11 @@
             };
 
             const switchUnit = (uuid) => {
-                // 切換到一般模式檢視該單位
                 window.location.href = `?id=${uuid}`;
             };
             
             const exitPortal = () => {
-                window.location.href = window.location.pathname; // 回首頁 (無參數)
+                window.location.href = window.location.pathname;
             };
 
             // --- Main Logic ---
