@@ -9,66 +9,71 @@ export async function onRequest(context) {
     const id = url.searchParams.get("id");
     if (!id) return new Response("Missing ID", { status: 400 });
 
-    // 讀取資料為二進位陣列 (arrayBuffer)，方便我們進行精準偵測
-    const { value, metadata } = await context.env.QU_ALBUM_DATA.getWithMetadata(id, "arrayBuffer");
-    if (!value) return new Response("Not found", { status: 404 });
+    try {
+      // 讀取為二進位陣列，確保我們能精準操作
+      const { value, metadata } = await context.env.QU_ALBUM_DATA.getWithMetadata(id, "arrayBuffer");
+      if (!value) return new Response(JSON.stringify({ error: "Not found" }), { status: 404 });
 
-    const headers = new Headers();
-    headers.set("Access-Control-Allow-Origin", "*");
-    headers.set("Content-Type", "application/json");
-    
-    // 🔥 加入防快取標頭，強迫瀏覽器每次都抓最新解壓縮的資料
-    headers.set("Cache-Control", "no-cache, no-store, must-revalidate");
+      const headers = new Headers();
+      headers.set("Access-Control-Allow-Origin", "*");
+      headers.set("Content-Type", "application/json; charset=utf-8"); // 強制 UTF-8
+      headers.set("Cache-Control", "no-cache, no-store, must-revalidate"); // 防快取干擾
 
-    // 🔥 終極偵測：不只看 metadata，直接檢查檔案的「特徵碼 (Magic Bytes)」
-    // GZIP 檔案的開頭永遠是 0x1F 和 0x8B
-    const bytes = new Uint8Array(value);
-    const isZipped = (metadata && metadata.zipped) || (bytes[0] === 0x1F && bytes[1] === 0x8B);
+      // 檢查特徵碼 (GZIP 檔頭永遠是 1F 8B)
+      const bytes = new Uint8Array(value);
+      const isZipped = (metadata && metadata.zipped) || (bytes.length > 1 && bytes[0] === 0x1F && bytes[1] === 0x8B);
 
-    if (isZipped) {
-      // 確認是壓縮檔，轉換為 Stream 並強制解壓縮
-      const response = new Response(value);
-      const decompressedStream = response.body.pipeThrough(new DecompressionStream("gzip"));
-      return new Response(decompressedStream, { headers });
+      if (isZipped) {
+        // 🔥 終極殺招：在 Cloudflare 內部強制解壓縮，轉成純文字再送給瀏覽器
+        const decompressedStream = new Response(value).body.pipeThrough(new DecompressionStream("gzip"));
+        const jsonText = await new Response(decompressedStream).text();
+        return new Response(jsonText, { headers });
+      } else {
+        // 沒壓縮過的直接回傳
+        return new Response(value, { headers });
+      }
+
+    } catch (e) {
+      // 如果解壓縮失敗，回傳清楚的錯誤訊息而不是亂碼
+      return new Response(JSON.stringify({ error: "Cloudflare 解壓縮失敗", details: e.message }), { 
+        status: 500, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } 
+      });
     }
-
-    // 如果是一般 JSON (如 IT總表)，直接回傳
-    return new Response(value, { headers });
   }
 
   // ==========================================
   // 🔵 POST: 接收 GAS 同步資料
   // ==========================================
   if (request.method === "POST") {
-    const secret = request.headers.get("x-auth-secret");
-    if (secret !== context.env.SYNC_SECRET) {
-       return new Response("Unauthorized", { status: 401 });
-    }
+    try {
+      const secret = request.headers.get("x-auth-secret");
+      if (secret !== context.env.SYNC_SECRET) {
+         return new Response("Unauthorized", { status: 401 });
+      }
 
-    const contentType = request.headers.get("Content-Type") || "";
+      const contentType = request.headers.get("Content-Type") || "";
+      const id = request.headers.get("x-uuid") || url.searchParams.get("id");
 
-    // 情況 A：接收壓縮後的二進位流 (來自 SYNC.gs)
-    if (contentType.includes("application/gzip")) {
-      const id = request.headers.get("x-uuid");
-      if (!id) return new Response("Missing Deployment ID", { status: 400 });
-
-      const buffer = await request.arrayBuffer(); 
-      await context.env.QU_ALBUM_DATA.put(id, buffer, { metadata: { zipped: true } });
-      
-      return new Response(JSON.stringify({ status: "ok", id: id, type: "zipped" }), {
-        headers: { "Content-Type": "application/json" }
-      });
-    } 
-    // 情況 B：接收一般 JSON (來自 SYNC_MASTER.gs IT總表)
-    else {
-      const data = await request.json();
-      const id = data.sys?.id;
-      if (!id) return new Response("Missing Deployment ID", { status: 400 });
-
-      await context.env.QU_ALBUM_DATA.put(id, JSON.stringify(data), { metadata: { zipped: false } });
-      
-      return new Response(JSON.stringify({ status: "ok", id: id, type: "json" }), {
-        headers: { "Content-Type": "application/json" }
+      if (contentType.includes("application/gzip")) {
+        if (!id) return new Response("Missing Deployment ID", { status: 400 });
+        const buffer = await request.arrayBuffer(); 
+        await context.env.QU_ALBUM_DATA.put(id, buffer, { metadata: { zipped: true } });
+        return new Response(JSON.stringify({ status: "ok", id: id, type: "zipped" }), {
+          headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+        });
+      } 
+      else {
+        const data = await request.json();
+        const jsonId = data.sys?.id || id;
+        if (!jsonId) return new Response("Missing Deployment ID", { status: 400 });
+        await context.env.QU_ALBUM_DATA.put(jsonId, JSON.stringify(data), { metadata: { zipped: false } });
+        return new Response(JSON.stringify({ status: "ok", id: jsonId, type: "json" }), {
+          headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+        });
+      }
+    } catch (e) {
+      return new Response(JSON.stringify({ error: "Cloudflare 儲存失敗", details: e.message }), { 
+        status: 500, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
       });
     }
   }
