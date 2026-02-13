@@ -9,8 +9,8 @@ export async function onRequest(context) {
     const id = url.searchParams.get("id");
     if (!id) return new Response("Missing ID", { status: 400 });
 
-    // 🔥 關鍵：使用 getWithMetadata 讀取二進位串流與中繼資料
-    const { value, metadata } = await context.env.KV.getWithMetadata(id, "stream");
+    // 🔥 修正：使用您綁定的 KV 名稱 QU_ALBUM_DATA
+    const { value, metadata } = await context.env.QU_ALBUM_DATA.getWithMetadata(id, "stream");
     if (!value) return new Response("Not found", { status: 404 });
 
     const headers = new Headers();
@@ -31,29 +31,38 @@ export async function onRequest(context) {
   if (request.method === "POST") {
     // 1. 驗證金鑰
     const secret = request.headers.get("x-auth-secret");
-    // 假設您環境變數有設 KV_SECRET，這裡進行比對 (請依您原本的寫法微調)
-    if (secret !== context.env.KV_SECRET) {
+    
+    // 🔥 修正：使用您設定的密碼變數名稱 SYNC_SECRET
+    if (secret !== context.env.SYNC_SECRET) {
        return new Response("Unauthorized", { status: 401 });
     }
 
     const contentType = request.headers.get("Content-Type") || "";
 
-    // 🔥 情況 A：接收壓縮後的二進位流 (來自 SYNC.gs)
+    // 情況 A：接收壓縮後的二進位流 (來自更新後的 SYNC.gs)
     if (contentType.includes("application/gzip")) {
       const id = request.headers.get("x-uuid");
+      if (!id) return new Response("Missing Deployment ID", { status: 400 });
+
       const buffer = await request.arrayBuffer(); // 讀取為二進位
       
       // 存入 KV，並加上 metadata 標籤
-      await context.env.KV.put(id, buffer, { metadata: { zipped: true } });
-      return new Response("Zipped Sync OK");
+      await context.env.QU_ALBUM_DATA.put(id, buffer, { metadata: { zipped: true } });
+      return new Response(JSON.stringify({ status: "ok", id: id, type: "zipped" }), {
+        headers: { "Content-Type": "application/json" }
+      });
     } 
-    // 情況 B：接收一般 JSON (來自 SYNC_MASTER.gs IT總表)
+    // 情況 B：接收一般 JSON (來自舊版或 SYNC_MASTER.gs IT總表)
     else {
       const data = await request.json();
-      const id = data.sys.id;
+      const id = data.sys?.id;
       
-      await context.env.KV.put(id, JSON.stringify(data), { metadata: { zipped: false } });
-      return new Response("JSON Sync OK");
+      if (!id) return new Response("Missing Deployment ID", { status: 400 });
+
+      await context.env.QU_ALBUM_DATA.put(id, JSON.stringify(data), { metadata: { zipped: false } });
+      return new Response(JSON.stringify({ status: "ok", id: id, type: "json" }), {
+        headers: { "Content-Type": "application/json" }
+      });
     }
   }
 
