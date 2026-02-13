@@ -79,12 +79,51 @@
         .marquee-track { display: flex; width: max-content; }
         .marquee-col { display: flex; flex-direction: column; height: max-content; }
         
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        .custom-scroll::-webkit-scrollbar { width: 6px; }
-        .custom-scroll::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.2); border-radius: 3px; }
+        /* 🔥 全域自動隱藏捲軸樣式 (Autohide Scrollbar) */
+        /* 1. 預設隱藏捲軸 (透明) */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+            background-color: transparent;
+        }
+        ::-webkit-scrollbar-track {
+            background-color: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background-color: transparent; /* 預設看不到 */
+            border-radius: 4px;
+            transition: background-color 0.3s ease; /* 淡入淡出效果 */
+        }
         
-        /* HUD 自動隱藏機制 (由 Vue class 控制) */
+        /* 2. 當 body 有 .is-scrolling 類別時，顯示半透明捲軸 */
+        .is-scrolling ::-webkit-scrollbar-thumb,
+        .is-scrolling::-webkit-scrollbar-thumb {
+            background-color: rgba(150, 150, 150, 0.5); /* 淺色模式下的灰色 */
+        }
+
+        /* 3. 暗黑模式或播放器模式下的捲軸顏色 (更白一點) */
+        .theme-dark .is-scrolling ::-webkit-scrollbar-thumb, 
+        .theme-dark.is-scrolling::-webkit-scrollbar-thumb,
+        .player-container .is-scrolling ::-webkit-scrollbar-thumb {
+            background-color: rgba(255, 255, 255, 0.4);
+        }
+
+        /* 4. 滑鼠移上去時稍微深一點，方便拖拉 */
+        .is-scrolling ::-webkit-scrollbar-thumb:hover,
+        .is-scrolling::-webkit-scrollbar-thumb:hover {
+            background-color: rgba(150, 150, 150, 0.8);
+        }
+        .theme-dark .is-scrolling ::-webkit-scrollbar-thumb:hover,
+        .player-container .is-scrolling ::-webkit-scrollbar-thumb:hover {
+            background-color: rgba(255, 255, 255, 0.7);
+        }
+
+        /* Firefox 支援 */
+        * { scrollbar-width: thin; scrollbar-color: transparent transparent; transition: scrollbar-color 0.3s; }
+        .is-scrolling * { scrollbar-color: rgba(150,150,150,0.5) transparent; }
+        .theme-dark.is-scrolling *, .player-container .is-scrolling * { scrollbar-color: rgba(255,255,255,0.4) transparent; }
+
+        /* HUD 自動隱藏機制 */
         .hud-panel { transition: opacity 0.5s ease; opacity: 0; pointer-events: none; }
         .hud-visible { opacity: 1; pointer-events: auto; }
         
@@ -116,7 +155,7 @@
                     <span class="text-theme-sub text-sm">已索引單位: {{ units.length }}</span>
                     <button @click="exitPortal" class="text-sm text-red-500 hover:underline">登出</button>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto pr-2 custom-scroll">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto pr-2">
                     <div v-for="unit in units" :key="unit.uuid" @click="switchUnit(unit.uuid)" 
                          class="p-4 border border-theme-border bg-theme-bg rounded-lg hover:border-theme-primary cursor-pointer transition flex justify-between items-center group">
                         <div class="font-bold text-lg text-theme-text">{{ unit.name }}</div>
@@ -151,7 +190,7 @@
                         進入相簿
                     </button>
                 </div>
-                <p class="mt-8 text-xs text-theme-sub border-t border-theme-border pt-4">© 2024 Qu Album Enterprise <span class="ml-2 font-mono bg-theme-bg px-1 rounded text-[10px]">v5.2</span></p>
+                <p class="mt-8 text-xs text-theme-sub border-t border-theme-border pt-4">© 2024 Qu Album Enterprise <span class="ml-2 font-mono bg-theme-bg px-1 rounded text-[10px]">v5.3</span></p>
             </div>
 
             <div v-else>
@@ -374,7 +413,7 @@
             const playList = ref([]);
             const currentPlayIndex = ref(0);
             const playConfig = ref({ interval: 5000, speed: 40 });
-            const showHud = ref(true); // 控制 HUD 顯示
+            const showHud = ref(true); 
             let slideTimer = null;
             let wakeLockSentinel = null;
             let hudTimeout = null;
@@ -388,7 +427,7 @@
                 try { if (document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen(); } catch(e){}
                 await toggleWakeLock(true);
                 if (mode === 'slide') startSlideTimer();
-                onPlayerMouseMove(); // 初始化計時器
+                onPlayerMouseMove(); 
             };
             const stopPlay = async () => { isPlaying.value = false; clearInterval(slideTimer); try { if (document.fullscreenElement) await document.exitFullscreen(); } catch(e){} await toggleWakeLock(false); showHud.value = true; };
             const startSlideTimer = () => { clearInterval(slideTimer); if (isPaused.value) return; slideTimer = setInterval(() => { currentPlayIndex.value = (currentPlayIndex.value + 1) % playList.value.length; }, playConfig.value.interval); };
@@ -401,10 +440,7 @@
             const onPlayerMouseMove = () => {
                 showHud.value = true;
                 clearTimeout(hudTimeout);
-                // 3秒無動作自動隱藏
-                hudTimeout = setTimeout(() => {
-                    if (isPlaying.value) showHud.value = false;
-                }, 3000);
+                hudTimeout = setTimeout(() => { if (isPlaying.value) showHud.value = false; }, 3000);
             };
 
             // Main State
@@ -477,6 +513,18 @@
                     if (isPlaying.value && e.key === 'Escape') stopPlay();
                 });
                 window.addEventListener('resize', () => { if (isDrawingMode.value) initCanvas(); });
+
+                // 🔥 全域捲軸自動隱藏偵測
+                let scrollTimeout;
+                const handleScroll = () => {
+                    document.body.classList.add('is-scrolling');
+                    clearTimeout(scrollTimeout);
+                    scrollTimeout = setTimeout(() => {
+                        document.body.classList.remove('is-scrolling');
+                    }, 1000); // 1秒後隱藏捲軸
+                };
+                // 使用 capture: true 以確保能偵測到所有子元素的滾動
+                window.addEventListener('scroll', handleScroll, true);
             });
 
             return {
