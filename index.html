@@ -47,7 +47,6 @@
     <style>
         [v-cloak] { display: none; }
         
-        /* CSS 變數定義 */
         :root {
             --theme-bg: #f9fafb; --theme-card: #ffffff; --theme-text: #1f2937;
             --theme-sub: #6b7280; --theme-border: #e5e7eb; --theme-primary: #2563eb; --theme-hover: #1d4ed8;
@@ -71,33 +70,26 @@
 
         body { background-color: var(--theme-bg); color: var(--theme-text); transition: background-color 0.3s, color 0.3s; }
         
-        /* 播放器專用樣式 */
-        .player-container { background: #000; overflow: hidden; }
+        /* 🔥 展示模式容器：徹底鎖定溢出，防止任何色塊與捲軸出現 */
+        .player-container { 
+            background: #000; 
+            overflow: hidden !important; 
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 300;
+        }
         .cursor-none { cursor: none !important; } 
         
-        /* 跑馬燈軌道 */
         .marquee-track { display: flex; width: max-content; }
         .marquee-col { display: flex; flex-direction: column; height: max-content; }
         
-        /* 🔥 v5.4 極簡捲軸 (只在一般頁面顯示，全螢幕時會被 JS 強制隱藏) */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: transparent; 
-        }
-        ::-webkit-scrollbar-thumb {
-            background: rgba(156, 163, 175, 0.5); /* 灰色半透明 */
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: rgba(156, 163, 175, 0.8);
-        }
-        /* Firefox */
+        /* 一般頁面極簡捲軸 */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(156, 163, 175, 0.5); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(156, 163, 175, 0.8); }
         * { scrollbar-width: thin; scrollbar-color: rgba(156, 163, 175, 0.5) transparent; }
 
-        /* HUD 自動隱藏機制 */
         .hud-panel { transition: opacity 0.5s ease; opacity: 0; pointer-events: none; }
         .hud-visible { opacity: 1; pointer-events: auto; }
         
@@ -156,7 +148,6 @@
                 </div>
                 <h2 class="text-3xl font-bold text-theme-text mb-2 tracking-tight">Qu 相簿入口</h2>
                 <p class="text-theme-sub text-sm mb-8">請輸入您的相簿櫃 UUID</p>
-                
                 <div class="flex flex-col space-y-4">
                     <input type="text" v-model="inputDeploymentId" placeholder="例如: 1234-abcd..." 
                            class="w-full border-2 border-theme-border bg-theme-bg text-theme-text rounded-xl px-4 py-3 focus:ring-2 focus:ring-theme-primary focus:border-theme-primary outline-none text-center font-mono text-lg transition-all">
@@ -164,9 +155,8 @@
                         進入相簿
                     </button>
                 </div>
-                <p class="mt-8 text-xs text-theme-sub border-t border-theme-border pt-4">© 2024 Qu Album Enterprise <span class="ml-2 font-mono bg-theme-bg px-1 rounded text-[10px]">v5.4</span></p>
+                <p class="mt-8 text-xs text-theme-sub border-t border-theme-border pt-4">© 2024 Qu Album Enterprise <span class="ml-2 font-mono bg-theme-bg px-1 rounded text-[10px]">v5.5</span></p>
             </div>
-
             <div v-else>
                 <i class="fa-solid fa-triangle-exclamation text-6xl text-red-400 mb-4"></i>
                 <h2 class="text-2xl font-bold text-theme-text mb-2">存取拒絕</h2>
@@ -234,7 +224,7 @@
                         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                             <div v-for="album in albums" :key="album.id" @click="enterFolder(album)" class="group bg-theme-card rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden border border-theme-border transform hover:-translate-y-1">
                                 <div class="aspect-w-4 aspect-h-3 bg-theme-bg relative overflow-hidden">
-                                    <img :src="album.cover || 'https://via.placeholder.com/400x300?text=No+Cover'" class="object-cover w-full h-full group-hover:scale-110 transition-transform duration-700">
+                                    <img :src="album.cover ? getCoverUrl(album.cover) : 'https://via.placeholder.com/400x300?text=No+Cover'" class="object-cover w-full h-full group-hover:scale-110 transition-transform duration-700">
                                     <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all"></div>
                                     <div v-if="album.pwd" class="absolute top-2 right-2 bg-black/70 text-white px-3 py-1 rounded-full text-xs font-bold border border-white/20"><i class="fa-solid fa-lock mr-1"></i> 上鎖</div>
                                 </div>
@@ -265,7 +255,7 @@
                             </div>
                             <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-4">
                                 <div v-for="(file, index) in currentFiles" :key="file.id" @click="openLightbox(index)" class="relative aspect-square bg-theme-bg rounded-lg overflow-hidden cursor-pointer group shadow-sm hover:shadow-md transition border border-theme-border">
-                                    <img :src="file.cover" loading="lazy" class="w-full h-full object-cover transition duration-500 group-hover:scale-110">
+                                    <img :src="getCoverUrl(file.id)" loading="lazy" class="w-full h-full object-cover transition duration-500 group-hover:scale-110">
                                     <span v-if="file.mime === 'v'" class="absolute top-2 right-2 text-white drop-shadow-md"><i class="fa-solid fa-video"></i></span>
                                 </div>
                             </div>
@@ -295,24 +285,24 @@
         </transition>
 
         <div v-if="isPlaying" 
-             class="fixed inset-0 z-[300] bg-black player-container player-wrapper overflow-hidden" 
+             class="player-container" 
              :class="{ 'cursor-none': !showHud }"
              @mousemove="onPlayerMouseMove">
             
             <div v-if="playMode === 'slide'" class="w-full h-full flex items-center justify-center relative">
                 <transition name="fade" mode="out-in">
-                    <img :key="playList[currentPlayIndex].id" :src="playList[currentPlayIndex].url" class="max-h-full max-w-full object-contain shadow-2xl">
+                    <img :key="playList[currentPlayIndex].id" :src="getPhotoUrl(playList[currentPlayIndex].id)" class="max-h-full max-w-full object-contain shadow-2xl">
                 </transition>
             </div>
 
-            <div v-if="playMode === 'h-wall'" class="w-full h-full flex flex-col justify-center space-y-4 p-4 overflow-hidden">
-                <div v-for="(row, rIndex) in 3" :key="rIndex" class="overflow-hidden relative w-full h-[30vh]">
+            <div v-if="playMode === 'h-wall'" class="w-full h-full flex flex-col justify-center space-y-4 p-4">
+                <div v-for="(rowOffset, rIndex) in [0, 10, 20]" :key="'hrow-'+rIndex" class="overflow-hidden relative w-full h-[30vh]">
                     <div class="marquee-track absolute top-0" 
                          :class="rIndex % 2 === 0 ? 'animate-marquee-left' : 'animate-marquee-right'"
                          :style="{ animationDuration: playConfig.speed + 's', animationPlayState: isPaused ? 'paused' : 'running' }">
-                         <div v-for="item in [...playList, ...playList]" :key="item.id + Math.random()" class="w-[40vh] h-[30vh] px-2 flex-shrink-0">
+                         <div v-for="item in getStaggeredList(rowOffset)" :key="item.uniqueId" class="w-[40vh] h-[30vh] px-2 flex-shrink-0">
                              <div class="film-frame w-full h-full p-1 bg-gray-900">
-                                 <img :src="item.cover" class="w-full h-full object-contain bg-black">
+                                 <img :src="getCoverUrl(item.id)" class="w-full h-full object-contain bg-black">
                              </div>
                          </div>
                     </div>
@@ -320,13 +310,13 @@
             </div>
 
             <div v-if="playMode === 'v-wall'" class="w-full h-full flex justify-center space-x-4 p-4 overflow-hidden">
-                <div v-for="(col, cIndex) in 4" :key="cIndex" class="h-full w-1/4 relative overflow-hidden">
+                <div v-for="(colOffset, cIndex) in [0, 10, 20, 30]" :key="'vcol-'+cIndex" class="h-full w-1/4 relative overflow-hidden">
                     <div class="marquee-col absolute left-0 w-full"
                          :class="cIndex % 2 === 0 ? 'animate-marquee-up' : 'animate-marquee-down'"
                          :style="{ animationDuration: playConfig.speed + 's', animationPlayState: isPaused ? 'paused' : 'running' }">
-                         <div v-for="item in [...playList, ...playList]" :key="item.id + Math.random()" class="w-full h-auto py-2">
+                         <div v-for="item in getStaggeredList(colOffset)" :key="item.uniqueId" class="w-full h-auto py-2">
                              <div class="film-frame w-full aspect-square p-1 bg-gray-900">
-                                 <img :src="item.cover" class="w-full h-full object-contain bg-black">
+                                 <img :src="getCoverUrl(item.id)" class="w-full h-full object-contain bg-black">
                              </div>
                          </div>
                     </div>
@@ -357,8 +347,8 @@
             </div>
             <div class="flex-1 relative flex items-center justify-center overflow-hidden bg-black select-none w-full h-full">
                 <canvas ref="drawCanvas" v-show="isDrawingMode" class="absolute inset-0 z-20 touch-none w-full h-full object-contain" :style="{ cursor: isDrawingMode ? 'url(' + penCursorUrl + ') 0 24, crosshair' : 'default' }" @mousedown="startDraw" @mousemove="drawing" @mouseup="stopDraw" @mouseout="stopDraw" @touchstart="startDraw" @touchmove="drawing" @touchend="stopDraw"></canvas>
-                <img v-if="currentPhoto.mime === 'i'" :src="currentPhoto.url" class="max-h-full max-w-full object-contain z-10 pointer-events-none">
-                <video v-else :src="getProxyUrl(currentPhoto.url)" controls autoplay class="max-h-full max-w-full z-10"></video>
+                <img v-if="currentPhoto.mime === 'i'" :src="getPhotoUrl(currentPhoto.id)" class="max-h-full max-w-full object-contain z-10 pointer-events-none">
+                <video v-else :src="getProxyUrl(getVideoUrl(currentPhoto.id))" controls autoplay class="max-h-full max-w-full z-10"></video>
                 <button v-if="!isDrawingMode" @click="prevPhoto" class="absolute left-4 z-30 w-12 h-12 rounded-full bg-black/50 hover:bg-white/20 text-white flex items-center justify-center transition"><i class="fa-solid fa-chevron-left text-2xl"></i></button>
                 <button v-if="!isDrawingMode" @click="nextPhoto" class="absolute right-4 z-30 w-12 h-12 rounded-full bg-black/50 hover:bg-white/20 text-white flex items-center justify-center transition"><i class="fa-solid fa-chevron-right text-2xl"></i></button>
             </div>
@@ -392,7 +382,24 @@
             let wakeLockSentinel = null;
             let hudTimeout = null;
 
-            const preparePlayList = () => { const list = [...currentFiles.value]; list.sort((a, b) => b.name.localeCompare(a.name)); return list.slice(0, 30); };
+            // 🔥 v5.5 升級：取 50 張，並新增錯位邏輯
+            const preparePlayList = () => { 
+                const list = [...currentFiles.value]; 
+                // 按檔名倒序排列
+                list.sort((a, b) => b.name.localeCompare(a.name)); 
+                return list.slice(0, 50); 
+            };
+            
+            // 🔥 錯位清單生成器 (Staggered List)
+            const getStaggeredList = (offset) => {
+                if (playList.value.length === 0) return [];
+                const len = playList.value.length;
+                const realOffset = offset % len;
+                // 將陣列旋轉並重複兩次達成無縫捲動
+                const rotated = [...playList.value.slice(realOffset), ...playList.value.slice(0, realOffset)];
+                return [...rotated, ...rotated].map((item, idx) => ({ ...item, uniqueId: `${item.id}_${idx}_${offset}` }));
+            };
+
             const toggleWakeLock = async (active) => { try { if (active && 'wakeLock' in navigator) wakeLockSentinel = await navigator.wakeLock.request('screen'); else if (!active && wakeLockSentinel) { await wakeLockSentinel.release(); wakeLockSentinel = null; } } catch (e) { console.warn('WakeLock error:', e); } };
             
             const startPlay = async (mode) => {
@@ -410,7 +417,6 @@
             const nextPlay = () => { currentPlayIndex.value = (currentPlayIndex.value + 1) % playList.value.length; startSlideTimer(); };
             const prevPlay = () => { currentPlayIndex.value = (currentPlayIndex.value - 1 + playList.value.length) % playList.value.length; startSlideTimer(); };
 
-            // HUD Auto Hide Logic
             const onPlayerMouseMove = () => {
                 showHud.value = true;
                 clearTimeout(hudTimeout);
@@ -442,9 +448,16 @@
             const ctx = ref(null);
             const isPainting = ref(false);
             const penCursorUrl = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.5));"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path><path d="M2 2l7.586 7.586"></path></svg>';
+            
             const currentFolders = computed(() => currentNode.value?.children?.filter(c => c.type === 'folder') || []);
             const currentFiles = computed(() => currentNode.value?.children?.filter(c => c.type === 'file') || []);
             const currentPhoto = computed(() => currentFiles.value[currentPhotoIndex.value] || {});
+            
+            // 🔥 減肥版：動態網址組裝
+            const getCoverUrl = (id) => id ? `https://drive.google.com/thumbnail?id=${id}&sz=s640` : '';
+            const getPhotoUrl = (id) => id ? `https://drive.google.com/thumbnail?id=${id}&sz=s1280` : '';
+            const getVideoUrl = (id) => id ? `https://drive.google.com/uc?export=download&id=${id}` : '';
+
             async function sha256(message) { const msgBuffer = new TextEncoder().encode(message); const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer); return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join(''); }
             const getProxyUrl = (u) => `/api/proxy?url=${encodeURIComponent(u)}`;
             const checkPortal = async () => { const params = new URLSearchParams(window.location.search); if (params.get('portal') === '1') { isPortalMode.value = true; try { const res = await fetch(`/api/albums?id=_MASTER_INDEX`); if(res.ok) { const data = await res.json(); masterHash.value = data.sys.password; units.value = data.units || []; } else { alert("Master Index Not Found"); } } catch(e) { console.error("Portal Error", e); } } };
@@ -465,7 +478,7 @@
             const openLightbox = (idx) => { currentPhotoIndex.value = idx; showLightbox.value = true; isDrawingMode.value = false; };
             const closeLightbox = () => { showLightbox.value = false; clearCanvas(); };
             const nextPhoto = () => { currentPhotoIndex.value = (currentPhotoIndex.value + 1) % currentFiles.value.length; clearCanvas(); };
-            const prevPhoto = () => { currentPhotoIndex.value = (currentPhotoIndex.value - 1 + currentFiles.value.length) % currentFiles.value.length; clearCanvas(); };
+            const prevPhoto = () => { currentPhotoIndex.value = (currentPhotoIndex.value - 1 + currentFiles.length.value) % currentFiles.value.length; clearCanvas(); };
             const toggleDrawing = async () => { isDrawingMode.value = !isDrawingMode.value; if(isDrawingMode.value) { await nextTick(); initCanvas(); } };
             const initCanvas = () => { const c = drawCanvas.value; if(!c) return; const rect = c.getBoundingClientRect(); c.width = rect.width; c.height = rect.height; ctx.value = c.getContext('2d'); ctx.value.lineCap='round'; ctx.value.lineJoin='round'; ctx.value.lineWidth=5; };
             const getPos = (e) => { const c = drawCanvas.value; if(!c) return {x:0, y:0}; const clientX = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX; const clientY = (e.touches && e.touches[0]) ? e.touches[0].clientY : e.clientY; const rect = c.getBoundingClientRect(); return { x: clientX - rect.left, y: clientY - rect.top }; };
@@ -473,7 +486,24 @@
             const drawing = (e) => { if(!isPainting.value) return; e.preventDefault(); const {x,y} = getPos(e); ctx.value.lineTo(x,y); ctx.value.stroke(); };
             const stopDraw = () => { isPainting.value = false; if(ctx.value) ctx.value.closePath(); };
             const clearCanvas = () => { if(ctx.value) ctx.value.clearRect(0,0,drawCanvas.value.width, drawCanvas.value.height); };
-            const downloadCurrentFolder = async () => { const zip = new JSZip(); const files = currentFiles.value; if(files.length===0) return alert('無照片'); alert(`打包中...`); try { await Promise.all(files.map(async (p) => { try { const res = await fetch(getProxyUrl(p.url)); if(res.ok) zip.file(p.name, await res.blob()); } catch(e){} })); saveAs(await zip.generateAsync({type:"blob"}), `${currentNode.value.name}.zip`); } catch(e) { alert('下載失敗'); } };
+            
+            // 下載功能優化：使用組裝網址
+            const downloadCurrentFolder = async () => { 
+                const zip = new JSZip(); 
+                const files = currentFiles.value; 
+                if(files.length===0) return alert('無照片'); 
+                alert(`打包中...`); 
+                try { 
+                    await Promise.all(files.map(async (p) => { 
+                        try { 
+                            const sourceUrl = p.mime === 'v' ? getVideoUrl(p.id) : getPhotoUrl(p.id);
+                            const res = await fetch(getProxyUrl(sourceUrl)); 
+                            if(res.ok) zip.file(p.name, await res.blob()); 
+                        } catch(e){} 
+                    })); 
+                    saveAs(await zip.generateAsync({type:"blob"}), `${currentNode.value.name}.zip`); 
+                } catch(e) { alert('下載失敗'); } 
+            };
 
             onMounted(async () => {
                 initTheme(); await checkPortal();
@@ -488,13 +518,9 @@
                 });
                 window.addEventListener('resize', () => { if (isDrawingMode.value) initCanvas(); });
 
-                // 🔥 v5.4: 自動鎖定 Body Scroll，不需 JS 偵測滾動
                 watch([isPlaying, showLightbox], ([playing, lightbox]) => {
-                    if (playing || lightbox) {
-                        document.body.style.overflow = 'hidden'; // 強制鎖定
-                    } else {
-                        document.body.style.overflow = ''; // 恢復正常
-                    }
+                    if (playing || lightbox) document.body.style.overflow = 'hidden'; 
+                    else document.body.style.overflow = ''; 
                 });
             });
 
@@ -503,10 +529,10 @@
                 goHome, enterFolder, navigateBreadcrumb, openById, goHomeRoot, copyShareLink,
                 showLightbox, currentPhotoIndex, openLightbox, closeLightbox, nextPhoto, prevPhoto,
                 isDrawingMode, penColor, colorPalette, drawCanvas, toggleDrawing, startDraw, drawing, stopDraw, clearCanvas,
-                getProxyUrl, downloadCurrentFolder, auth, verifyPassword, cancelAuth, penCursorUrl,
+                getProxyUrl, getCoverUrl, getPhotoUrl, getVideoUrl, downloadCurrentFolder, auth, verifyPassword, cancelAuth, penCursorUrl,
                 isPortalMode, portalAuth, portalInput, portalError, units, verifyPortal, switchUnit, exitPortal, themes, currentTheme, showThemeMenu, setTheme,
-                // Player
-                isPlaying, playMode, showPlayMenu, playList, currentPlayIndex, playConfig, isPaused, startPlay, stopPlay, togglePause, nextPlay, prevPlay, onPlayerMouseMove, showHud
+                isPlaying, playMode, showPlayMenu, playList, currentPlayIndex, playConfig, isPaused, startPlay, stopPlay, togglePause, nextPlay, prevPlay, onPlayerMouseMove, showHud,
+                getStaggeredList
             };
         }
     }).mount('#app');
