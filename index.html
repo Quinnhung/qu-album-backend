@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Qu相簿企業版</title>
+    <title>Qu相簿版本2.0</title>
     
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -109,7 +109,7 @@
     <div v-if="isPortalMode" class="fixed inset-0 z-[200] bg-theme-bg flex flex-col items-center justify-center p-4">
         <div class="bg-theme-card p-8 rounded-2xl shadow-xl max-w-2xl w-full border border-theme-border">
             <h1 class="text-3xl font-bold text-theme-text mb-6 flex items-center justify-center">
-                <i class="fa-solid fa-server text-theme-primary mr-3"></i> 企業相簿總管
+                <i class="fa-solid fa-server text-theme-primary mr-3"></i> 相簿總管
             </h1>
             <div v-if="!portalAuth" class="flex flex-col space-y-4">
                 <input type="password" v-model="portalInput" placeholder="Password" class="border border-theme-border bg-theme-bg text-theme-text p-3 rounded text-center text-lg outline-none" @keyup.enter="verifyPortal">
@@ -155,7 +155,7 @@
                         進入相簿
                     </button>
                 </div>
-                <p class="mt-8 text-xs text-theme-sub border-t border-theme-border pt-4">© 2024 Qu Album Enterprise <span class="ml-2 font-mono bg-theme-bg px-1 rounded text-[10px]">v5.5</span></p>
+                <p class="mt-8 text-xs text-theme-sub border-t border-theme-border pt-4">&copy; 2024 Qu Album Enterprise <span class="ml-2 font-mono bg-theme-bg px-1 rounded text-[10px]">v2.0</span></p>
             </div>
             <div v-else>
                 <i class="fa-solid fa-triangle-exclamation text-6xl text-red-400 mb-4"></i>
@@ -224,7 +224,7 @@
                         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                             <div v-for="album in albums" :key="album.id" @click="enterFolder(album)" class="group bg-theme-card rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden border border-theme-border transform hover:-translate-y-1">
                                 <div class="aspect-w-4 aspect-h-3 bg-theme-bg relative overflow-hidden">
-                                    <img :src="album.cover ? getCoverUrl(album.cover) : 'https://via.placeholder.com/400x300?text=No+Cover'" class="object-cover w-full h-full group-hover:scale-110 transition-transform duration-700">
+                                    <img :src="album.coverId ? getCoverUrl(album.coverId) : 'https://via.placeholder.com/400x300?text=No+Cover'" class="object-cover w-full h-full group-hover:scale-110 transition-transform duration-700">
                                     <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all"></div>
                                     <div v-if="album.pwd" class="absolute top-2 right-2 bg-black/70 text-white px-3 py-1 rounded-full text-xs font-bold border border-white/20"><i class="fa-solid fa-lock mr-1"></i> 上鎖</div>
                                 </div>
@@ -360,7 +360,6 @@
     const { createApp, ref, computed, onMounted, nextTick, watch } = Vue;
     createApp({
         setup() {
-            // Theme Logic
             const themes = [{ id: 'default', name: '🏢 簡約白' }, { id: 'dark', name: '🌙 暗黑模式' }, { id: 'festive', name: '🧧 喜氣紅' }, { id: 'nature', name: '🌿 護眼綠' }, { id: 'luxury', name: '🌆 沉穩金' }];
             const currentTheme = ref('default');
             const showThemeMenu = ref(false);
@@ -369,7 +368,6 @@
             const setTheme = (id) => { currentTheme.value = id; showThemeMenu.value = false; };
             const initTheme = () => { const saved = localStorage.getItem('qu-theme'); if (saved && themes.some(t => t.id === saved)) currentTheme.value = saved; else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) currentTheme.value = 'dark'; applyThemeToBody(currentTheme.value); };
 
-            // Player Logic
             const isPlaying = ref(false);
             const playMode = ref('slide');
             const showPlayMenu = ref(false);
@@ -382,20 +380,16 @@
             let wakeLockSentinel = null;
             let hudTimeout = null;
 
-            // 🔥 v5.5 升級：取 50 張，並新增錯位邏輯
             const preparePlayList = () => { 
                 const list = [...currentFiles.value]; 
-                // 按檔名倒序排列
                 list.sort((a, b) => b.name.localeCompare(a.name)); 
                 return list.slice(0, 50); 
             };
             
-            // 🔥 錯位清單生成器 (Staggered List)
             const getStaggeredList = (offset) => {
                 if (playList.value.length === 0) return [];
                 const len = playList.value.length;
                 const realOffset = offset % len;
-                // 將陣列旋轉並重複兩次達成無縫捲動
                 const rotated = [...playList.value.slice(realOffset), ...playList.value.slice(0, realOffset)];
                 return [...rotated, ...rotated].map((item, idx) => ({ ...item, uniqueId: `${item.id}_${idx}_${offset}` }));
             };
@@ -423,7 +417,6 @@
                 hudTimeout = setTimeout(() => { if (isPlaying.value) showHud.value = false; }, 3000);
             };
 
-            // Main State
             const loading = ref(true);
             const error = ref(null);
             const inputDeploymentId = ref('');
@@ -453,7 +446,6 @@
             const currentFiles = computed(() => currentNode.value?.children?.filter(c => c.type === 'file') || []);
             const currentPhoto = computed(() => currentFiles.value[currentPhotoIndex.value] || {});
             
-            // 🔥 減肥版：動態網址組裝
             const getCoverUrl = (id) => id ? `https://drive.google.com/thumbnail?id=${id}&sz=s640` : '';
             const getPhotoUrl = (id) => id ? `https://drive.google.com/thumbnail?id=${id}&sz=s1280` : '';
             const getVideoUrl = (id) => id ? `https://drive.google.com/uc?export=download&id=${id}` : '';
@@ -464,7 +456,22 @@
             const verifyPortal = async () => { const inputHash = await sha256(portalInput.value); if (inputHash === masterHash.value) { portalAuth.value = true; portalError.value = false; } else { portalError.value = true; } };
             const switchUnit = (uuid) => { window.location.href = `?id=${uuid}`; };
             const exitPortal = () => { window.location.href = window.location.pathname; };
-            const fetchData = async (id) => { try { const res = await fetch(`/api/albums?id=${id}`); if (!res.ok) throw new Error('讀取失敗'); const data = await res.json(); if (data.error) throw new Error(data.error); sysInfo.value = data.sys; albums.value = data.albums; if (sysInfo.value.password) triggerAuth('global'); } catch (err) { error.value = err.message; } finally { loading.value = false; } };
+            const fetchData = async (id) => { 
+                try { 
+                    const res = await fetch(`/api/albums?id=${id}`); 
+                    if (!res.ok) throw new Error('讀取失敗'); 
+                    const data = await res.json(); 
+                    if (data.error) throw new Error(data.error); 
+                    sysInfo.value = data.sys; 
+                    albums.value = data.albums; 
+                    if (sysInfo.value.title) document.title = sysInfo.value.title;
+                    if (sysInfo.value.password) triggerAuth('global'); 
+                } catch (err) { 
+                    error.value = err.message; 
+                } finally { 
+                    loading.value = false; 
+                } 
+            };
             const enterFolder = (folder) => { if (folder.pwd && folder.password) triggerAuth('folder', folder); else actuallyEnterFolder(folder); };
             const actuallyEnterFolder = (folder) => { currentNode.value = folder; breadcrumbs.value.push({ id: folder.id, name: folder.name, node: folder }); viewMode.value = 'explorer'; };
             const triggerAuth = (type, target = null) => { auth.value = { required: true, type, target, input: '', error: false, verifying: false }; nextTick(() => { document.querySelector('input[type="password"]')?.focus(); }); };
@@ -478,7 +485,8 @@
             const openLightbox = (idx) => { currentPhotoIndex.value = idx; showLightbox.value = true; isDrawingMode.value = false; };
             const closeLightbox = () => { showLightbox.value = false; clearCanvas(); };
             const nextPhoto = () => { currentPhotoIndex.value = (currentPhotoIndex.value + 1) % currentFiles.value.length; clearCanvas(); };
-            const prevPhoto = () => { currentPhotoIndex.value = (currentPhotoIndex.value - 1 + currentFiles.length.value) % currentFiles.value.length; clearCanvas(); };
+            // 🔥 重大修正：修復「上一張」因為長度變數錯誤導致的報錯
+            const prevPhoto = () => { currentPhotoIndex.value = (currentPhotoIndex.value - 1 + currentFiles.value.length) % currentFiles.value.length; clearCanvas(); };
             const toggleDrawing = async () => { isDrawingMode.value = !isDrawingMode.value; if(isDrawingMode.value) { await nextTick(); initCanvas(); } };
             const initCanvas = () => { const c = drawCanvas.value; if(!c) return; const rect = c.getBoundingClientRect(); c.width = rect.width; c.height = rect.height; ctx.value = c.getContext('2d'); ctx.value.lineCap='round'; ctx.value.lineJoin='round'; ctx.value.lineWidth=5; };
             const getPos = (e) => { const c = drawCanvas.value; if(!c) return {x:0, y:0}; const clientX = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX; const clientY = (e.touches && e.touches[0]) ? e.touches[0].clientY : e.clientY; const rect = c.getBoundingClientRect(); return { x: clientX - rect.left, y: clientY - rect.top }; };
@@ -487,7 +495,6 @@
             const stopDraw = () => { isPainting.value = false; if(ctx.value) ctx.value.closePath(); };
             const clearCanvas = () => { if(ctx.value) ctx.value.clearRect(0,0,drawCanvas.value.width, drawCanvas.value.height); };
             
-            // 下載功能優化：使用組裝網址
             const downloadCurrentFolder = async () => { 
                 const zip = new JSZip(); 
                 const files = currentFiles.value; 
