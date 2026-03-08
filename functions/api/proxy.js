@@ -1,12 +1,39 @@
+/**
+ * ------------------------------------------------------------------
+ * 📸 Qu相簿 - 影音串流代理 API (proxy.js)
+ * ------------------------------------------------------------------
+ * * 版本：v2.0 (輕量快取版)
+ * * 說明：
+ * 1. 解決 Google Drive 檔案直連的 CORS 跨域問題。
+ * 2. 支援 HTTP Range Requests，確保影片可秒開與任意拖拉進度。
+ * 3. 處理 OPTIONS 預檢請求，加速播放器初始化。
+ * 4. 強制替換 attachment 為 inline，避免觸發實體下載。
+ * ------------------------------------------------------------------
+ */
+
 export async function onRequest(context) {
   const request = context.request;
+
+  // --- 1. 處理 CORS 預檢請求 (OPTIONS) ---
+  // 瀏覽器對於帶有 Range 的請求會先發出 OPTIONS 進行跨域確認
+  if (request.method === "OPTIONS") {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+        "Access-Control-Allow-Headers": "Range, Content-Type",
+        "Access-Control-Max-Age": "86400"
+      }
+    });
+  }
+
   const url = new URL(request.url);
   const targetUrl = url.searchParams.get('url');
 
-  // 1. 基本檢查
+  // --- 2. 基本檢查與網域白名單 ---
   if (!targetUrl) return new Response('Missing URL', { status: 400 });
 
-  // 2. 網域白名單檢查
   let targetObj;
   try {
     targetObj = new URL(targetUrl);
@@ -19,39 +46,40 @@ export async function onRequest(context) {
     return new Response('Forbidden Domain', { status: 403 });
   }
 
-  // 3. 準備轉發的 Headers (關鍵修改點)
+  // --- 3. 準備轉發的 Headers ---
   const headers = new Headers();
-  headers.set("User-Agent", "QuAlbum-Proxy/1.0");
+  headers.set("User-Agent", "QuAlbum-Proxy/2.0");
 
-  // 🔥 關鍵優化：轉發 'Range' 標頭
-  // 如果瀏覽器要求 "bytes=0-100"，我們就如實轉達給 Google
+  // 關鍵：將前端要求播放到哪裡的 Range 轉發給 Google
   const range = request.headers.get("Range");
   if (range) {
     headers.set("Range", range);
   }
 
   try {
-    // 4. 發送請求給 Google
+    // --- 4. 發送請求給 Google ---
     const response = await fetch(targetUrl, {
-      method: "GET",
+      method: request.method, // 支援 GET 與 HEAD
       headers: headers
     });
 
-    // 5. 重組回應 (保留 Google 回傳的 206 Partial Content 狀態)
+    // --- 5. 重組回應 Headers ---
     const newHeaders = new Headers(response.headers);
     newHeaders.set("Access-Control-Allow-Origin", "*");
     newHeaders.set("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
     
-    // 修正：不要強制設為 image.jpg，這會讓影片下載時檔名錯誤
-    // 我們嘗試從 Content-Type 猜測，或是直接保留 Google 的設定
-    if (!newHeaders.has("Content-Disposition")) {
-       // 如果是影片，不要強制設為附件，讓瀏覽器可以直接播放
-       const contentType = newHeaders.get("Content-Type") || "";
-       if (!contentType.startsWith("video/")) {
-           newHeaders.set("Content-Disposition", 'inline'); 
-       }
+    // 🔥 關鍵修正 1：暴露串流標頭，確保播放器能讀取影片總長度，才能拖拉進度條
+    newHeaders.set("Access-Control-Expose-Headers", "Content-Length, Content-Range, Accept-Ranges");
+
+    // 🔥 關鍵修正 2：攔截 Google 的 attachment 設定，強制改為 inline 讓影片能在網頁內播放
+    const disposition = newHeaders.get("Content-Disposition");
+    if (disposition && disposition.includes("attachment")) {
+        newHeaders.set("Content-Disposition", disposition.replace("attachment", "inline"));
+    } else if (!disposition) {
+        newHeaders.set("Content-Disposition", "inline");
     }
 
+    // --- 6. 回傳資料 ---
     return new Response(response.body, {
       status: response.status,
       statusText: response.statusText,
